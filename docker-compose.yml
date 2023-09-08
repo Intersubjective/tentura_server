@@ -1,0 +1,79 @@
+version: '3.8'
+services:
+  openresty:
+    container_name: openresty
+    build: ./openresty
+    image: gravity/openresty
+    restart: unless-stopped
+    depends_on:
+      - hasura
+    volumes:
+      # - ./openresty/conf/cert:/usr/local/openresty/nginx/conf/cert
+      - ./openresty/conf:/usr/local/openresty/nginx/conf
+      - ./openresty/lib:/usr/local/openresty/site/lualib/app
+      - /tmp
+    tmpfs:
+      - /srv
+    ports:
+      - target: 80
+        published: 80
+        protocol: tcp
+        mode: host
+      - target: 443
+        published: 443
+        protocol: tcp
+        mode: host
+    networks:
+      - hasura
+      - openresty
+    environment:
+      - WORKERS
+      - LUA_CODE_CACHE
+      - RESOLVER=127.0.0.53
+    command: /bin/ash -c "envsubst < /usr/local/openresty/nginx/conf/template.conf > /srv/nginx.conf && exec openresty -c /srv/nginx.conf"
+    logging:
+      driver: journald
+
+  hasura:
+    container_name: hasura
+    image: hasura/graphql-engine
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    networks:
+      - hasura
+      - postgres
+    environment:
+      - HASURA_GRAPHQL_DEV_MODE=true
+      - HASURA_GRAPHQL_ENABLE_CONSOLE=true
+      - HASURA_GRAPHQL_ENABLE_TELEMETRY=false
+      - HASURA_GRAPHQL_ADMIN_SECRET=eiQuaix4avaeta8i
+      - HASURA_GRAPHQL_AUTH_HOOK=http://openresty/auth/hasura
+      - HASURA_GRAPHQL_METADATA_DATABASE_URL=postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/postgres
+    logging:
+      driver: journald
+
+  postgres:
+    container_name: postgres
+    image: postgis/postgis
+    restart: unless-stopped
+    volumes:
+      - ./data:/var/lib/postgresql/data
+    networks:
+      - postgres
+    environment:
+      - POSTGRES_PASSWORD
+    logging:
+      driver: journald
+
+networks:
+  openresty:
+
+  hasura:
+    ipam:
+      config:
+        - subnet: 172.72.0.0/24
+    internal: true
+
+  postgres:
+    internal: true
