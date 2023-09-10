@@ -8,12 +8,10 @@ services:
     depends_on:
       - hasura
     volumes:
-      # - ./openresty/conf/cert:/usr/local/openresty/nginx/conf/cert
-      - ./openresty/conf:/usr/local/openresty/nginx/conf
-      - ./openresty/lib:/usr/local/openresty/site/lualib/app
       - /tmp
+      - ./cert:/etc/nginx/cert
     tmpfs:
-      - /srv
+      - /var/run/openresty
     ports:
       - target: 80
         published: 80
@@ -28,9 +26,17 @@ services:
       - openresty
     environment:
       - WORKERS
+      - RESOLVER
+      - SERVER_NAME
+      - ERROR_LOG_LEVEL
+      - WORKER_CONNECTIONS
+      - CLIENT_MAX_BODY_SIZE
+      - CLIENT_BODY_BUFFER_SIZE
+      - LUA_SOCKET_POOL_SIZE
       - LUA_CODE_CACHE
-      - RESOLVER=127.0.0.53
-    command: /bin/ash -c "envsubst < /usr/local/openresty/nginx/conf/template.conf > /srv/nginx.conf && exec openresty -c /srv/nginx.conf"
+      - CERT_CACHE_SIZE
+      - ACME_EMAIL
+    command: /bin/ash -c "envsubst < /etc/nginx/nginx.conf > /var/run/openresty/nginx.conf && exec openresty -c /var/run/openresty/nginx.conf"
     logging:
       driver: journald
 
@@ -44,12 +50,12 @@ services:
       - hasura
       - postgres
     environment:
-      - HASURA_GRAPHQL_DEV_MODE=true
-      - HASURA_GRAPHQL_ENABLE_CONSOLE=true
+      - HASURA_GRAPHQL_DEV_MODE
+      - HASURA_GRAPHQL_ADMIN_SECRET
+      - HASURA_GRAPHQL_ENABLE_CONSOLE
       - HASURA_GRAPHQL_ENABLE_TELEMETRY=false
-      - HASURA_GRAPHQL_ADMIN_SECRET=eiQuaix4avaeta8i
       - HASURA_GRAPHQL_AUTH_HOOK=http://openresty/auth/hasura
-      - HASURA_GRAPHQL_METADATA_DATABASE_URL=postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/postgres
+      - HASURA_GRAPHQL_DATABASE_URL=postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/postgres
     logging:
       driver: journald
 
