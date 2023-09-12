@@ -3,17 +3,15 @@ local cjson = require'cjson.safe'
 local sodium = require'luasodium'
 
 local hasuraUrl = '/v1/graphql'
-local tokenRegExp = '[B|b]earer[%s|=]+(%S+)'
 local anonymousRoleBody = '{"X-Hasura-Role": "anonymous"}'
 
 local _M = {}
 
 ---@param allowAnonymous boolean
 function _M.getAuth(allowAnonymous)
-  local token = string.match(
-    ngx.var.http_authorization or ngx.var.http_cookie or '',
-    tokenRegExp
-    )
+  local token = string.match(ngx.var.http_authorization or '', 'Bearer (%S+)')
+    or ngx.var.http_cookie_bearer
+    or ''
   if not token then
     if allowAnonymous then
       ngx.say(anonymousRoleBody)

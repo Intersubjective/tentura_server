@@ -9,7 +9,7 @@ services:
       - hasura
     volumes:
       - /tmp
-      - ./cert:/etc/nginx/cert
+      - openresty-cert:/etc/nginx/cert
     tmpfs:
       - /var/run/openresty
     ports:
@@ -36,6 +36,7 @@ services:
       - LUA_CODE_CACHE
       - CERT_CACHE_SIZE
       - ACME_EMAIL
+      - JWT_SEED
     command: /bin/ash -c "envsubst < /etc/nginx/nginx.conf > /var/run/openresty/nginx.conf && exec openresty -c /var/run/openresty/nginx.conf"
     logging:
       driver: journald
@@ -71,6 +72,9 @@ services:
       - POSTGRES_PASSWORD
     logging:
       driver: journald
+
+volumes:
+  openresty-cert:
 
 networks:
   openresty:
