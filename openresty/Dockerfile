@@ -4,6 +4,7 @@ RUN apk add --no-cache curl perl libsodium libsodium-dev
 
 RUN opm get jprjr/luasodium \
   && opm get fffonion/lua-resty-acme \
+  && opm get cdbattags/lua-resty-jwt \
   && opm get antonheryanto/lua-resty-post \
   && echo "All done!"
 
@@ -12,6 +13,8 @@ ADD --chmod=755 https://github.com/a8m/envsubst/releases/download/v1.4.2/envsubs
 
 ADD --chmod=755 ./scripts/reload.sh /usr/local/bin/
 
-ADD ./app /usr/local/openresty/site/lualib/
+ADD ./lib/resty/* /usr/local/openresty/site/lualib/resty/
+
+ADD ./lib/app/* /usr/local/openresty/site/lualib/app/
 
 ADD ./conf/* /etc/nginx/
