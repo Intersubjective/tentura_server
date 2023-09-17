@@ -1,10 +1,8 @@
 import 'dart:convert';
 import 'package:hex/hex.dart';
-import 'package:http/http.dart';
-import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
-
 import 'package:test/test.dart';
 import 'package:gravity_server/app.dart';
+import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 
 final _prvKey = HEX.decode(''
         '56:86:b1:32:2f:af:c5:2e:b8:10:32:6b:61:e7:21:af'
@@ -15,10 +13,8 @@ final _pubKey = HEX.decode(''
         '5b:69:35:84:ae:f6:bf:df:47:01:13:9b:77:7b:b2:97'
     .replaceAll(':', ''));
 
-final params = (
-  hasuraAdminKey: '-----BEGIN PUBLIC KEY-----\n'
-      'MCowBQYDK2VwAyEAPdY7qqtzhTWVbxB3QkSZ+ENB5nkr9EB4b5AdSdggZ/U=\n'
-      '-----END PUBLIC KEY-----',
+final _params = (
+  hasuraAdminKey: '',
   publicKey: HEX.decode(''
           '3d:d6:3b:aa:ab:73:85:35:95:6f:10:77:42:44:99:f8'
           '43:41:e6:79:2b:f4:40:78:6f:90:1d:49:d8:20:67:f5'
@@ -30,31 +26,18 @@ final params = (
 );
 
 void main() {
-  final jwt = JWT({}, subject: base64Encode(_pubKey)).sign(
-    EdDSAPrivateKey(_prvKey + _pubKey),
-    algorithm: JWTAlgorithm.EdDSA,
-  );
+  final app = App(_params);
+  final publicKey = EdDSAPublicKey(_pubKey);
+  final privateKey = EdDSAPrivateKey(_prvKey + _pubKey);
+  final jwt = JWT({}, subject: base64Encode(_pubKey))
+      .sign(privateKey, algorithm: JWTAlgorithm.EdDSA);
+
+  test('print public key', () {
+    print(base64Encode(app.publicKey.key.bytes));
+  });
 
   test('sign/verify', () {
     print(jwt);
-    JWT.verify(jwt, EdDSAPublicKey(_pubKey));
-  });
-
-  test('register', () async {
-    final resp = await post(
-      Uri.http('localhost', 'user/register'),
-      headers: App.contentType,
-      body: jwt,
-    );
-    print(resp.body);
-  });
-
-  test('login', () async {
-    final resp = await post(
-      Uri.http('localhost', 'user/login'),
-      headers: App.contentType,
-      body: jwt,
-    );
-    print(resp.body);
+    JWT.verify(jwt, publicKey);
   });
 }

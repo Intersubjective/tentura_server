@@ -57,10 +57,12 @@ services:
     container_name: gravity
     image: alpine
     restart: unless-stopped
+    command:
+      - /srv/gravity_server
     depends_on:
       - hasura
     volumes:
-      - ./gravity_server.bin:/srv/app
+      - ./gravity_server/bin/gravity_server:/srv/gravity_server
     networks:
       - backend
     environment:

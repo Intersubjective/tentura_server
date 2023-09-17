@@ -5,10 +5,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "auth",
+            "name": "gravity_server",
             "request": "launch",
             "type": "dart",
-            "program": "bin/auth_server.dart"
+            "program": "bin/gravity_server.dart"
         }
     ]
 }
