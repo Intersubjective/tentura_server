@@ -1,5 +1,5 @@
-name: auth
-description: A sample command-line application.
+name: gravity_server
+description: Cloud application server for app Gravity
 version: 1.0.0
 # repository: https://github.com/my_org/my_repo
 
@@ -8,8 +8,12 @@ environment:
 
 # Add regular dependencies here.
 dependencies:
+  hex: ^0.2.0
+  http: ^1.1.0
+  shelf: ^1.4.0
+  shelf_router: ^1.1.0
+  ed25519_edwards: ^0.3.1
   dart_jsonwebtoken: ^2.11.0
-  # path: ^1.8.0
 
 dev_dependencies:
   lints: ^2.0.0
