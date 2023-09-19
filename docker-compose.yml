@@ -1,24 +1,36 @@
 version: '3.8'
 services:
-  caddy:
-    container_name: caddy
-    image: caddy/caddy
+  openresty:
+    container_name: openresty
+    build: ./openresty
+    image: gravity/openresty
     restart: unless-stopped
     depends_on:
       - hasura
+    volumes:
+      - /tmp
+      - openresty-cert:/etc/nginx/cert
+    tmpfs:
+      - /var/run/openresty
     ports:
       - "80:80"
       - "443:443"
-      - "443:443/udp"
     networks:
+      - frontend
       - backend
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - caddy_config:/config
-      - caddy_data:/data
-      # - ./images:/srv
     environment:
-      - CADDY_SERVER_NAME
+      - WORKERS
+      - RESOLVER
+      - SERVER_NAME
+      - ERROR_LOG_LEVEL
+      - WORKER_CONNECTIONS
+      - CLIENT_MAX_BODY_SIZE
+      - CLIENT_BODY_BUFFER_SIZE
+      - LUA_SOCKET_POOL_SIZE
+      - LUA_CODE_CACHE
+      - CERT_CACHE_SIZE
+      - ACME_EMAIL
+    command: /bin/ash -c "envsubst < /etc/nginx/nginx.conf > /var/run/openresty/nginx.conf && openresty -c /var/run/openresty/nginx.conf"
     logging:
       driver: journald
 
@@ -34,9 +46,9 @@ services:
       - HASURA_GRAPHQL_DEV_MODE
       - HASURA_GRAPHQL_ADMIN_SECRET
       - HASURA_GRAPHQL_ENABLE_CONSOLE
-      - HASURA_GRAPHQL_ENABLE_TELEMETRY=false
-      - HASURA_GRAPHQL_DATABASE_URL=postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/postgres
-      - HASURA_GRAPHQL_JWT_SECRET: '{"type":"Ed25519", "key":"${JWT_PUBLIC_PEM}", "claims_map": {"x-hasura-allowed-roles": ["user"], "x-hasura-default-role": "user", "x-hasura-user-id": {"path": "$$.sub"}}}'
+      - 'HASURA_GRAPHQL_ENABLE_TELEMETRY=false'
+      - 'HASURA_GRAPHQL_DATABASE_URL=postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/postgres'
+      - 'HASURA_GRAPHQL_JWT_SECRET={"type":"Ed25519", "key":"${JWT_PUBLIC_PEM}", "claims_map": {"x-hasura-allowed-roles": ["user", "admin"], "x-hasura-default-role": "user", "x-hasura-user-id": {"path": "$$.sub"}}}'
     logging:
       driver: journald
 
@@ -55,14 +67,12 @@ services:
 
   gravity:
     container_name: gravity
-    image: alpine
+    build: ./gravity_server
     restart: unless-stopped
-    command:
-      - /srv/gravity_server
     depends_on:
       - hasura
     volumes:
-      - ./gravity_server/bin/gravity_server:/srv/gravity_server
+      - ./gravity_server:/srv
     networks:
       - backend
     environment:
@@ -73,9 +83,9 @@ services:
       driver: journald
 
 volumes:
-  caddy_data:
-    # external: true
-  caddy_config:
+  openresty-cert:
 
+networks:
+  frontend:
   backend:
     internal: true

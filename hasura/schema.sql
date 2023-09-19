@@ -1,6 +1,6 @@
 SET check_function_bodies = false;
 CREATE TABLE public.beacon (
-    id text DEFAULT concat('b', "substring"((gen_random_uuid())::text, '\w{12}'::text)) NOT NULL,
+    id text DEFAULT concat('B', "substring"((gen_random_uuid())::text, '\w{12}'::text)) NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     user_id text NOT NULL,
@@ -92,12 +92,13 @@ BEGIN
 END;
 $$;
 CREATE TABLE public."user" (
-    id text NOT NULL,
+    id text DEFAULT concat('U', "substring"((gen_random_uuid())::text, '\w{12}'::text)) NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     title text NOT NULL,
     description text NOT NULL,
     has_picture boolean DEFAULT false NOT NULL,
+    public_key text NOT NULL,
     CONSTRAINT user__description_len CHECK ((char_length(description) <= 2048)),
     CONSTRAINT user__title_len CHECK ((char_length(title) <= 128))
 );
@@ -148,6 +149,41 @@ CREATE TABLE public.vote_user (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
+CREATE VIEW public.edges AS
+ SELECT beacon.id AS src,
+    beacon.user_id AS dst,
+    1 AS amount
+   FROM public.beacon
+UNION
+ SELECT beacon.user_id AS src,
+    beacon.id AS dst,
+    1 AS amount
+   FROM public.beacon
+UNION
+ SELECT comment.id AS src,
+    comment.user_id AS dst,
+    1 AS amount
+   FROM public.comment
+UNION
+ SELECT comment.user_id AS src,
+    comment.id AS dst,
+    1 AS amount
+   FROM public.comment
+UNION
+ SELECT vote_user.subject AS src,
+    vote_user.object AS dst,
+    vote_user.amount
+   FROM public.vote_user
+UNION
+ SELECT vote_beacon.subject AS src,
+    vote_beacon.object AS dst,
+    vote_beacon.amount
+   FROM public.vote_beacon
+UNION
+ SELECT vote_comment.subject AS src,
+    vote_comment.object AS dst,
+    vote_comment.amount
+   FROM public.vote_comment;
 ALTER TABLE ONLY public.beacon_hidden
     ADD CONSTRAINT beacon_hidden_pkey PRIMARY KEY (user_id, beacon_id);
 ALTER TABLE ONLY public.beacon_pinned
@@ -158,6 +194,8 @@ ALTER TABLE ONLY public.comment
     ADD CONSTRAINT comment_pkey PRIMARY KEY (id);
 ALTER TABLE ONLY public."user"
     ADD CONSTRAINT user_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public."user"
+    ADD CONSTRAINT user_public_key_key UNIQUE (public_key);
 ALTER TABLE ONLY public.vote_beacon
     ADD CONSTRAINT vote_beacon_pkey PRIMARY KEY (subject, object);
 ALTER TABLE ONLY public.vote_comment

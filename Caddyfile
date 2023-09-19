@@ -1,5 +1,0 @@
-${CADDY_SERVER_NAME:localhost} {
-  reverse_proxy  hasura:8080
-
-  reverse_proxy  /user/*  auth_server:8081
-}

@@ -1,5 +1,5 @@
 {
-  "resource_version": 397,
+  "resource_version": 12,
   "metadata": {
     "version": 3,
     "sources": [
@@ -431,6 +431,12 @@
           },
           {
             "table": {
+              "name": "edges",
+              "schema": "public"
+            }
+          },
+          {
+            "table": {
               "name": "user",
               "schema": "public"
             },
@@ -545,26 +551,6 @@
                 }
               }
             ],
-            "insert_permissions": [
-              {
-                "role": "user",
-                "permission": {
-                  "check": {
-                    "id": {
-                      "_eq": "X-Hasura-User-Id"
-                    }
-                  },
-                  "set": {
-                    "id": "X-Hasura-User-Id"
-                  },
-                  "columns": [
-                    "description",
-                    "title",
-                    "has_picture"
-                  ]
-                }
-              }
-            ],
             "select_permissions": [
               {
                 "role": "user",
@@ -572,9 +558,10 @@
                   "columns": [
                     "created_at",
                     "description",
-                    "title",
                     "has_picture",
                     "id",
+                    "public_key",
+                    "title",
                     "updated_at"
                   ],
                   "computed_fields": [
