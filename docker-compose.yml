@@ -5,8 +5,8 @@ services:
     build: ./openresty
     image: gravity/openresty
     restart: unless-stopped
-    depends_on:
-      - hasura
+    # depends_on:
+    #   - hasura
     volumes:
       - /tmp
       - openresty-cert:/etc/nginx/cert
@@ -16,7 +16,7 @@ services:
       - "80:80"
       - "443:443"
     networks:
-      - frontend
+      - proxy
       - backend
     environment:
       - WORKERS
@@ -30,6 +30,9 @@ services:
       - LUA_CODE_CACHE
       - CERT_CACHE_SIZE
       - ACME_EMAIL
+      - JWT_PUBLIC_PEM
+      - JWT_PRIVATE_PEM
+      - HASURA_GRAPHQL_ADMIN_SECRET
     command: /bin/ash -c "envsubst < /etc/nginx/nginx.conf > /var/run/openresty/nginx.conf && openresty -c /var/run/openresty/nginx.conf"
     logging:
       driver: journald
@@ -69,8 +72,8 @@ services:
     container_name: gravity
     build: ./gravity_server
     restart: unless-stopped
-    depends_on:
-      - hasura
+    # depends_on:
+    #   - hasura
     volumes:
       - ./gravity_server:/srv
     networks:
@@ -86,6 +89,6 @@ volumes:
   openresty-cert:
 
 networks:
-  frontend:
+  proxy:
   backend:
     internal: true

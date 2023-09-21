@@ -1,6 +1,13 @@
 #!/bin/sh
 cd ../conf
 
+# DH params for nginx
+if test -f dhparam.pem; then
+  echo "skip: dhparam.pem exists"
+else
+  openssl dhparam -out dhparam.pem 4096
+fi
+
 # Key for resty-acme
 if test -f account_key.pem; then
   echo "skip: account_key.pem exists"
@@ -22,18 +29,10 @@ else
   openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -nodes -keyout rsa_key.pem -out rsa_cert.pem
 fi
 
-# DH params for nginx
-if test -f dhparam.pem; then
-  echo "skip: dhparam.pem exists"
-else
-  openssl dhparam -out dhparam.pem 4096
-fi
-
 # Keys for resty-jwt
 if test -f jwt_private.pem || test -f jwt_public.pem; then
-  echo "skip: jwt_private.pem exists"
+  echo "skip: jwt_private.pem or jwt_public.pem exists"
 else
-  openssl ecparam -name secp256k1 > jwt_private.pem
-  openssl ecparam -name secp256k1 -genkey -noout >> jwt_private.pem
-  openssl ec -in jwt_private.pem -pubout -out jwt_public.pem
+  openssl genpkey -algorithm ed25519 -out jwt_private.pem
+  openssl pkey -in jwt_private.pem -pubout -out jwt_public.pem
 fi

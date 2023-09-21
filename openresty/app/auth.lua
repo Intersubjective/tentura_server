@@ -1,6 +1,5 @@
 local ngx = ngx
 local cjson = require'cjson.safe'
-local sodium = require'luasodium'
 
 local hasuraUrl = '/v1/graphql'
 local anonymousRoleBody = '{"X-Hasura-Role": "anonymous"}'

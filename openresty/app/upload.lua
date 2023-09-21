@@ -9,7 +9,7 @@ local inlist = function(list, item)
 end
 
 rawset(_G, 'lfs', false) --to fix global 'lfs' variable using
-local mkdir = require("lfs").mkdir
+local mkdir = require'lfs_ffi'.mkdir
 local token = require("random").token
 local root = ngx.var.document_root.."/i/"
 local rtoken = token(32)
