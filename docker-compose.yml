@@ -1,6 +1,7 @@
 version: '3.8'
 services:
   openresty:
+    hostname: openresty
     container_name: openresty
     build: ./openresty
     image: gravity/openresty
@@ -38,6 +39,7 @@ services:
       driver: journald
 
   hasura:
+    hostname: hasura
     container_name: hasura
     image: hasura/graphql-engine
     restart: unless-stopped
@@ -56,6 +58,7 @@ services:
       driver: journald
 
   postgres:
+    hostname: postgres
     container_name: postgres
     image: postgis/postgis
     restart: unless-stopped
@@ -65,23 +68,6 @@ services:
       - backend
     environment:
       - POSTGRES_PASSWORD
-    logging:
-      driver: journald
-
-  gravity:
-    container_name: gravity
-    build: ./gravity_server
-    restart: unless-stopped
-    # depends_on:
-    #   - hasura
-    volumes:
-      - ./gravity_server:/srv
-    networks:
-      - backend
-    environment:
-      - HASURA_GRAPHQL_ADMIN_SECRET
-      - JWT_PRIVATE_KEY
-      - JWT_PUBLIC_KEY
     logging:
       driver: journald
 

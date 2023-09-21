@@ -15,10 +15,15 @@ local JWT_HEADER = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.'
 local JWT_BODY_START_AT = #JWT_HEADER + 1
 local PK, SK
 
+--=== Public methods ===--
 
----@param subject string
----@return string
+
+---@param subject string?
+---@return string?
 local function signJWT(subject)
+    if not subject or subject == '' then
+        return
+    end
     local now = time()
     local jwt_body = to_base64url(to_json {
         sub = subject,
@@ -30,14 +35,18 @@ local function signJWT(subject)
 end
 
 
----@param jwt string
+---@param jwt string?
 ---@return table?
 local function verifyJWT(jwt)
+    if not jwt or #jwt < JWT_BODY_START_AT then
+        return
+    end
     local dotPosition = find(jwt, '.', JWT_BODY_START_AT, true)
     local message = sub(jwt, 1, dotPosition - 1)
     local signature = from_base64url(sub(jwt, dotPosition + 1))
     if verify(signature, message, PK) then
         local body = from_base64url(sub(message, JWT_BODY_START_AT))
+        --TBD: verify iat, exp and etc
         if body then
             return from_json(body)
         end

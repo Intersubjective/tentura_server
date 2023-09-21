@@ -1,50 +1,108 @@
 local ngx = ngx
-local cjson = require'cjson.safe'
-local signJWT = require'app.jwt'.signJWT
-local verifyJWT = require'app.jwt'.verifyJWT
+local http = require'resty.http'
+local to_json = require 'cjson'.encode
+local from_json = require 'cjson.safe'.decode
+local signJWT = require 'app.jwt'.signJWT
+local verifyJWT = require 'app.jwt'.verifyJWT
 
-local CONTENT_TYPE_KEY = 'Content-Type'
-local CONTENT_TYPE_VALUE = 'application/json; charset=utf-8'
+local CT_JSON = 'application/json'
+local HASURA_URL = 'http://hasura:8080/v1/graphql'
+local QUERY_HEADERS = {['Content-Type'] = CT_JSON}
+local QUERY_USER_FETCH = [[
+    query UserFetch($publicKey: String!) {
+        user(where: {public_key: {_eq: $publicKey}}) {id}}
+]]
+local QUERY_USER_CREATE = [[
+    mutation UserCreate($title: String = "", $description: String = "", $publicKey: String!) {
+        insert_user_one(object: {title: $title, description: $description, public_key: $publicKey}) {id}}
+]]
 
 
 ---@return table?
-local function get_body()
-    ngx.req.read_body()
-    local bodyString = ngx.req.get_body_data() or ''
-    if bodyString == '' then return ngx.exit(400) end
-
-    local Body = cjson.decode(bodyString)
-    if type(Body) ~= 'table' then return ngx.exit(400) end
-
-    return Body
+local function get_auth_token()
+    return verifyJWT(string.match(ngx.var.http_authorization or '', 'Bearer[%s+](%S+)'))
+        or ngx.exit(ngx.HTTP_UNAUTHORIZED)
 end
 
 
----@param body string
+---@param gql string
+---@param vars table
+---@return table?
+local function query(gql, vars)
+    local httpc = http.new()
+    local res, err = httpc:request_uri(HASURA_URL, {
+        method = 'POST',
+        headers = QUERY_HEADERS,
+        body = to_json { query = gql, variables = vars },
+    })
+    if not res then
+        ngx.status = ngx.HTTP_BAD_GATEWAY
+        ngx.say(err)
+        return ngx.exit(ngx.OK)
+    elseif res.status ~= 200 then
+        ngx.status = res.status or ngx.HTTP_BAD_GATEWAY
+        ngx.say(res.body)
+        return ngx.exit(ngx.OK)
+    else
+        return from_json(res.body)
+    end
+end
+
+
 local function respond(body)
-    ngx.header[CONTENT_TYPE_KEY] = CONTENT_TYPE_VALUE
-    ngx.say(body)
-    ngx.exit(200)
+    if body == nil then
+        return ngx.exit(ngx.HTTP_BAD_REQUEST)
+    end
+    if type(body) == 'table' then
+        ngx.header.content_type = CT_JSON
+        ngx.say(to_json(body))
+    else
+        ngx.say(tostring(body))
+    end
+    return ngx.exit(ngx.OK)
 end
 
 
-local function register()
-    local body = get_body()
-    if not body then return end
+--=== Public methods ===--
 
-    respond(signJWT(body.sub))
+
+---@param hasura_admin_secret string
+local function init(hasura_admin_secret)
+    QUERY_HEADERS['X-Hasura-Admin-Secret'] = hasura_admin_secret
 end
 
 
-local function login()
-    local body = get_body()
-    if not body then return end
+---@param method string
+local function serve(method)
+    local jwt = get_auth_token()
+    if not jwt then
+        return print'Wrong token!'
+    end
 
-    respond(signJWT(body.sub))
+    if method == 'register' then
+        local resp = query(QUERY_USER_CREATE, {publicKey = jwt.sub})
+        if resp then
+            respond(resp)
+            -- respond(signJWT(jwt.sub))
+        end
+    elseif method == 'login' then
+        local resp = query(QUERY_USER_FETCH, {publicKey = jwt.sub})
+        if resp then
+            respond(resp)
+            -- respond(signJWT(jwt.sub))
+        end
+    end
+    return respond()
 end
 
+
+local function test()
+    respond(signJWT'test')
+end
 
 return {
-    login = login,
-    register = register,
+    _VERSION = '0.0.1',
+    init = init,
+    serve = serve,
+    test = test,
 }
