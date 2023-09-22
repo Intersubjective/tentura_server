@@ -5,7 +5,7 @@ local find = string.find
 local match = string.match
 local from_base64 = ngx.decode_base64
 local to_json = require 'cjson'.encode
-local from_json = require 'cjson'.decode
+local from_json = require 'cjson.safe'.decode
 local to_base64url = require 'ngx.base64'.encode_base64url
 local from_base64url = require 'ngx.base64'.decode_base64url
 local sign = require 'luasodium'.crypto_sign_detached
@@ -21,7 +21,7 @@ local PK, SK
 
 ---@param subject string?
 ---@return string?
-local function signJWT(subject)
+local function sign_jwt(subject)
     if not subject or subject == '' then
         return
     end
@@ -38,7 +38,7 @@ end
 
 ---@param jwt string?
 ---@return table?
-local function verifyJWT(jwt)
+local function verify_jwt(jwt)
     if not jwt or #jwt < JWT_BODY_START_AT then
         return
     end
@@ -55,22 +55,36 @@ local function verifyJWT(jwt)
 end
 
 
+---@return table
+local function get_auth()
+    local jwt = verify_jwt(match(ngx.var.http_authorization or '', '(%S+)', 8))
+    if jwt then
+        return jwt
+    end
+    ngx.var.xlog = 'Wrong token!'
+    ngx.exit(ngx.HTTP_UNAUTHORIZED)
+    return {}
+end
+
+
 ---@param pk string
 ---@param sk string
+---@param exp string
 local function init(pk, sk, exp)
-    exp = tonumber(exp)
-    if exp then
-        JWT_EXPIRE = math.floor(exp)
+    local expire = tonumber(exp)
+    if expire then
+        JWT_EXPIRE = math.floor(expire)
     end
     PK = sub(from_base64(match(pk, '\n(.+)\n')), -32)
     SK = sub(from_base64(match(sk, '\n(.+)\n')), -32) .. PK
-    print('jwt keys inited: ', verifyJWT(signJWT 'test') ~= nil)
+    print('jwt keys inited: ', verify_jwt(sign_jwt 'test') ~= nil)
 end
 
 
 return {
     _VERSION = '0.0.1',
     init = init,
-    signJWT = signJWT,
-    verifyJWT = verifyJWT,
+    get_auth = get_auth,
+    sign_jwt = sign_jwt,
+    verify_jwt = verify_jwt,
 }
