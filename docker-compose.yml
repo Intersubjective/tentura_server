@@ -31,8 +31,10 @@ services:
       - LUA_CODE_CACHE
       - CERT_CACHE_SIZE
       - ACME_EMAIL
+      - JWT_EXPIRE
       - JWT_PUBLIC_PEM
       - JWT_PRIVATE_PEM
+      - HASURA_LOCATION_OVERRIDE
       - HASURA_GRAPHQL_ADMIN_SECRET
     command: /bin/ash -c "envsubst < /etc/nginx/nginx.conf > /var/run/openresty/nginx.conf && openresty -c /var/run/openresty/nginx.conf"
     logging:

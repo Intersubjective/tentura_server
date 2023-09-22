@@ -13,6 +13,7 @@ local verify = require 'luasodium'.crypto_sign_verify_detached
 
 local JWT_HEADER = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.'
 local JWT_BODY_START_AT = #JWT_HEADER + 1
+local JWT_EXPIRE = 3600
 local PK, SK
 
 --=== Public methods ===--
@@ -28,7 +29,7 @@ local function signJWT(subject)
     local jwt_body = to_base64url(to_json {
         sub = subject,
         iat = now,
-        exp = now + 3600
+        exp = now + JWT_EXPIRE
     })
     local message = JWT_HEADER .. jwt_body
     return message .. '.' .. to_base64url(sign(message, SK))
@@ -56,7 +57,11 @@ end
 
 ---@param pk string
 ---@param sk string
-local function init(pk, sk)
+local function init(pk, sk, exp)
+    exp = tonumber(exp)
+    if exp then
+        JWT_EXPIRE = math.floor(exp)
+    end
     PK = sub(from_base64(match(pk, '\n(.+)\n')), -32)
     SK = sub(from_base64(match(sk, '\n(.+)\n')), -32) .. PK
     print('jwt keys inited: ', verifyJWT(signJWT 'test') ~= nil)

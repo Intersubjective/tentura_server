@@ -2,8 +2,8 @@ local ngx = ngx
 local http = require'resty.http'
 local to_json = require 'cjson'.encode
 local from_json = require 'cjson.safe'.decode
-local signJWT = require 'app.jwt'.signJWT
 local verifyJWT = require 'app.jwt'.verifyJWT
+local signJWT = require 'app.jwt'.signJWT
 
 local CT_JSON = 'application/json'
 local HASURA_URL = 'http://hasura:8080/v1/graphql'

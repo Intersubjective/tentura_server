@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+  openresty:
+    volumes:
+      - ./openresty/conf/nginx.conf:/etc/nginx/nginx.conf
+      - ./openresty/app:/usr/local/openresty/site/lualib/app
+    environment:
+      - "WORKERS=2"
+      - "LUA_CODE_CACHE=off"
+      - "ERROR_LOG_LEVEL=debug"
+      - "HASURA_LOCATION_OVERRIDE=~ ^/(v1|v2|v1alpha1|console)/"
+  hasura:
+    environment:
+      - "HASURA_GRAPHQL_DEV_MODE=true"
+      - "HASURA_GRAPHQL_LOG_LEVEL=debug"
+      - "HASURA_GRAPHQL_ENABLE_CONSOLE=true"
+      - "HASURA_GRAPHQL_ENABLE_METADATA_QUERY_LOGGING=true"
