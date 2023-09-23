@@ -31,7 +31,7 @@ services:
       - LUA_CODE_CACHE
       - CERT_CACHE_SIZE
       - ACME_EMAIL
-      - JWT_EXPIRE
+      - JWT_EXPIRES_IN
       - JWT_PUBLIC_PEM
       - JWT_PRIVATE_PEM
       - HASURA_LOCATION_OVERRIDE

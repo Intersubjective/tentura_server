@@ -1,13 +1,13 @@
-local ngx = ngx
-local http = require 'resty.http'
-local to_json = require 'cjson'.encode
-local from_json = require 'cjson.safe'.decode
-
 local METHOD = 'POST'
 local HASURA_URL = 'http://hasura:8080/v1/graphql'
 local QUERY_HEADERS = {
     ['Content-Type'] = 'application/json',
 }
+
+local ngx = ngx
+local http = require 'resty.http'
+local to_json = require 'cjson'.encode
+local from_json = require 'cjson.safe'.decode
 
 
 ---@param gql string
