@@ -8,7 +8,7 @@ services:
     environment:
       - "WORKERS=2"
       - "ERROR_LOG_LEVEL=debug"
-      - "HASURA_LOCATION_OVERRIDE=/"
+      - "HASURA_LOCATION_OVERRIDE=root"
       - "LUA_CODE_CACHE=off"
 
   hasura:
