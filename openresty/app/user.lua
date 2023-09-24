@@ -1,6 +1,7 @@
 local CT_JSON = 'application/json'
 
 local ngx = ngx
+local is_empty = require'table.isempty'
 local cjson = require 'cjson'
 local jwt = require 'app.jwt'
 local gql = require 'app.gql'
@@ -14,16 +15,18 @@ local function login()
         return ngx.exit(ngx.HTTP_UNAUTHORIZED)
     end
 
-    local data, errors = gql.query(QUERY_USER_FETCH, { publicKey = token.pk })
+    local data, errors = gql.query(QUERY_USER_FETCH, { pk = token.pk })
     if data then
+        if is_empty(data.user) then
+            return ngx.exit(ngx.HTTP_NOT_FOUND)
+        end
         ngx.header.content_type = CT_JSON
         ngx.say(jwt.sign_jwt(data.user[1].id))
         return ngx.exit(ngx.OK)
 
     elseif errors then
-        --TBD: parse Hasura errors
         ngx.log(ngx.INFO, cjson.encode(errors))
-        return ngx.exit(ngx.HTTP_NOT_FOUND)
+        return ngx.exit(ngx.HTTP_BAD_REQUEST)
     end
 
     return ngx.exit(ngx.HTTP_BAD_GATEWAY)
@@ -38,7 +41,7 @@ local function register()
         return ngx.exit(ngx.HTTP_UNAUTHORIZED)
     end
 
-    local data, errors = gql.query(QUERY_USER_CREATE, { publicKey = token.pk })
+    local data, errors = gql.query(QUERY_USER_CREATE, { pk = token.pk })
     if data then
         ngx.header.content_type = CT_JSON
         ngx.say(jwt.sign_jwt(data.insert_user_one.id))

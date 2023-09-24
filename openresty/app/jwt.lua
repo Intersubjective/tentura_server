@@ -1,38 +1,36 @@
 local JWT_HEADER = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.'
 local JWT_BODY_START_AT = #JWT_HEADER + 1
 local JWT_SIGNATURE_LENGTH = 86
+local JWT_MIN_LENGTH = JWT_BODY_START_AT + JWT_SIGNATURE_LENGTH
 local JWT_EXPIRES_IN = 3600
 local PK, SK
 
 local ngx = ngx
 local time = ngx.time
 local sub = string.sub
-local find = string.find
 local tostring = tostring
 local match = string.match
-local from_base64 = ngx.decode_base64
+local from_b64 = ngx.decode_base64
 local get_headers = ngx.req.get_headers
 
 local to_json = require 'cjson'.encode
 local from_json = require 'cjson.safe'.decode
-local to_base64url = require 'ngx.base64'.encode_base64url
-local from_base64url = require 'ngx.base64'.decode_base64url
-local sign = require 'luasodium'.crypto_sign_detached
+local to_b64url = require 'ngx.base64'.encode_base64url
+local from_b64url = require 'ngx.base64'.decode_base64url
 local verify = require 'luasodium'.crypto_sign_verify_detached
+local sign = require 'luasodium'.crypto_sign_detached
 
 
 ---@param token string?
 ---@return table?
 ---@return string?
 local function parse_jwt(token)
-    if not token or #token < JWT_BODY_START_AT then
+    if not token or #token < JWT_MIN_LENGTH then
         return nil, 'No JWT!'
     end
 
-    local dotPosition = find(token, '.', JWT_BODY_START_AT, true) or 0
-    local message = sub(token, 1, dotPosition - 1)
-
-    local jwt, err = from_json(from_base64url(sub(message, JWT_BODY_START_AT)) or 'not json')
+    local message = sub(token, 1, #token - JWT_SIGNATURE_LENGTH - 1)
+    local jwt, err = from_json(from_b64url(sub(message, JWT_BODY_START_AT)) or '')
     if err then
         return nil, err
 
@@ -45,7 +43,7 @@ local function parse_jwt(token)
         jwt.message = message
     end
 
-    jwt.signature, err = from_base64url(sub(token, dotPosition + 1))
+    jwt.signature, err = from_b64url(sub(token, -JWT_SIGNATURE_LENGTH))
     if err then
         return nil, err
     end
@@ -63,8 +61,7 @@ local function verify_jwt(extract_pk, token)
     if not jwt then
         return nil, err
     end
-    local pk = extract_pk and from_base64url(jwt.pk) or PK
-    if verify(jwt.signature, jwt.message, pk) then
+    if verify(jwt.signature, jwt.message, extract_pk and from_b64url(jwt.pk) or PK) then
         return jwt
     else
         return nil, 'Wrong signature!'
@@ -79,7 +76,7 @@ local function sign_jwt(subject)
         return
     end
     local now = time()
-    local jwt_body = to_base64url(to_json {
+    local jwt_body = to_b64url(to_json {
         sub = subject,
         iat = now,
         exp = now + JWT_EXPIRES_IN
@@ -88,7 +85,7 @@ local function sign_jwt(subject)
     return to_json{
         subject = subject,
         token_type = 'bearer',
-        access_token = message .. '.' .. to_base64url(sign(message, SK)),
+        access_token = message .. '.' .. to_b64url(sign(message, SK)),
         expires_in = JWT_EXPIRES_IN,
     }
 end
@@ -103,8 +100,8 @@ local function init(pk, sk, exp)
         JWT_EXPIRES_IN = math.floor(expire)
     end
     local re = '\n(.+)\n'
-    PK = sub(from_base64(pk:match(re)), -32)
-    SK = sub(from_base64(sk:match(re)), -32) .. PK
+    PK = sub(from_b64(pk:match(re)), -32)
+    SK = sub(from_b64(sk:match(re)), -32) .. PK
     print(
         'jwt keys inited: ',
         verify_jwt(false, from_json(sign_jwt('test') or '{}').access_token) ~= nil)
