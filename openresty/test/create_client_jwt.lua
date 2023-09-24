@@ -14,5 +14,4 @@ local jwt_body = to_base64url(to_json {
     exp = now + 3600
 })
 local message = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.' .. jwt_body
-ngx.header.content_type = 'application/json'
 ngx.say(message .. '.' .. to_base64url(sign_message(message, SK)))

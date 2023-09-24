@@ -1,5 +1,6 @@
 local JWT_HEADER = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.'
 local JWT_BODY_START_AT = #JWT_HEADER + 1
+local JWT_SIGNATURE_LENGTH = 86
 local JWT_EXPIRES_IN = 3600
 local PK, SK
 
@@ -7,7 +8,11 @@ local ngx = ngx
 local time = ngx.time
 local sub = string.sub
 local find = string.find
+local tostring = tostring
+local match = string.match
 local from_base64 = ngx.decode_base64
+local get_headers = ngx.req.get_headers
+
 local to_json = require 'cjson'.encode
 local from_json = require 'cjson.safe'.decode
 local to_base64url = require 'ngx.base64'.encode_base64url
@@ -21,7 +26,7 @@ local verify = require 'luasodium'.crypto_sign_verify_detached
 ---@return string?
 local function parse_jwt(token)
     if not token or #token < JWT_BODY_START_AT then
-        return nil, 'Wrong JWT!'
+        return nil, 'No JWT!'
     end
 
     local dotPosition = find(token, '.', JWT_BODY_START_AT, true) or 0
@@ -49,12 +54,12 @@ local function parse_jwt(token)
 end
 
 
----@param token string
 ---@param extract_pk boolean?
+---@param token string?
 ---@return table?
 ---@return string?
-local function verify_jwt(token, extract_pk)
-    local jwt, err = parse_jwt(token)
+local function verify_jwt(extract_pk, token)
+    local jwt, err = parse_jwt(token or match(tostring(get_headers()['Authorization'] or ''), '(%S+)', 8))
     if not jwt then
         return nil, err
     end
@@ -102,7 +107,7 @@ local function init(pk, sk, exp)
     SK = sub(from_base64(sk:match(re)), -32) .. PK
     print(
         'jwt keys inited: ',
-        verify_jwt(from_json(sign_jwt('test') or '{}').access_token) ~= nil)
+        verify_jwt(false, from_json(sign_jwt('test') or '{}').access_token) ~= nil)
 end
 
 

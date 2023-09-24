@@ -3,11 +3,9 @@ local HASURA_URL = 'http://hasura:8080/v1/graphql'
 local QUERY_HEADERS = {
     ['Content-Type'] = 'application/json',
 }
-
 local ngx = ngx
+local cjson = require 'cjson'
 local http = require 'resty.http'
-local to_json = require 'cjson'.encode
-local from_json = require 'cjson.safe'.decode
 
 
 ---@param gql string
@@ -19,7 +17,7 @@ local function query(gql, vars)
     local res, err = httpc:request_uri(HASURA_URL, {
         method = METHOD,
         headers = QUERY_HEADERS,
-        body = to_json { query = gql, variables = vars },
+        body = cjson.encode { query = gql, variables = vars },
     })
     if not res then
         ngx.status = ngx.HTTP_BAD_GATEWAY
@@ -30,8 +28,11 @@ local function query(gql, vars)
         ngx.say(res.body)
         return ngx.exit(ngx.OK)
     else
-        local json = from_json(res.body)
-        return json.data, json.error
+        local json = cjson.decode(res.body)
+        if json.errors then
+            ngx.log(ngx.INFO, cjson.encode(json.errors))
+        end
+        return json.data, json.errors
     end
 end
 

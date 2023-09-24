@@ -1,4 +1,3 @@
-#!/bin/sh
 cd ../conf
 
 # DH params for nginx
