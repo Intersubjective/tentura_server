@@ -1,3 +1,5 @@
 .env
 *.pem
+data/*
+images/*
 docker-compose.override.yml

@@ -43,6 +43,24 @@ local function upload()
 end
 
 
+local function check_access()
+    local method = ngx.req.get_method()
+    if method == 'GET' then
+        return ngx.exit(ngx.OK)
+    elseif method == 'PUT' or method == 'DELETE' then
+        local token, err = jwt.verify_jwt()
+        if not token then
+            ngx.var.xlog = err
+            return ngx.exit(ngx.HTTP_UNAUTHORIZED)
+        end
+        if token.sub == ngx.var[1] then
+            return ngx.exit(ngx.OK)
+        end
+    end
+    return ngx.exit(ngx.HTTP_FORBIDDEN)
+end
+
+
 ---@param base_path string?
 local function init(base_path)
     if base_path and base_path ~= '' then
@@ -54,4 +72,5 @@ return {
     _VERSION = '0.0.1',
     init = init,
     upload = upload,
+    check_access = check_access,
 }
