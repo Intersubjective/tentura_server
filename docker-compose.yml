@@ -10,6 +10,7 @@ services:
     #   - hasura
     volumes:
       - /tmp
+      - ./images:/srv/images
       - openresty-cert:/etc/nginx/cert
     tmpfs:
       - /var/run/openresty
