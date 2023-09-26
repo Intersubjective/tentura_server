@@ -9,6 +9,6 @@ RUN opm get bungle/lua-resty-template \
   && opm get jprjr/luasodium \
   && echo "All done!"
 
-ADD ./app /usr/local/openresty/site/lualib/
+ADD ./app/* /usr/local/openresty/site/lualib/app/
 
 ADD ./conf/* /etc/nginx/
