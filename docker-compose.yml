@@ -11,6 +11,7 @@ services:
     volumes:
       - /tmp
       - ./images:/srv/images
+      - ./static:/usr/local/openresty/nginx/html
       - openresty-cert:/etc/nginx/cert
     tmpfs:
       - /var/run/openresty
@@ -55,8 +56,10 @@ services:
       - HASURA_GRAPHQL_ADMIN_SECRET
       - HASURA_GRAPHQL_ENABLE_CONSOLE
       - 'HASURA_GRAPHQL_ENABLE_TELEMETRY=false'
+      - 'HASURA_GRAPHQL_ENABLE_REMOTE_SCHEMA_PERMISSIONS=true'
       - 'HASURA_GRAPHQL_DATABASE_URL=postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/postgres'
       - 'HASURA_GRAPHQL_JWT_SECRET={"type":"Ed25519", "key":"${JWT_PUBLIC_PEM}", "claims_map": {"x-hasura-allowed-roles": ["user", "admin"], "x-hasura-default-role": "user", "x-hasura-user-id": {"path": "$$.sub"}}}'
+      - 'MERITRANK_PATH=http://meritrank:8000/graphql'
     logging:
       driver: journald
 
