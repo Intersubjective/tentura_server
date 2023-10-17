@@ -14,6 +14,10 @@ local http = require 'resty.http'
 ---@return table?
 local function query(gql, vars)
     local httpc = http.new()
+    if not httpc then
+        ngx.log(ngx.ERR, 'Could not create http client')
+        return ngx.exit(ngx.HTTP_SERVICE_UNAVAILABLE)
+    end
     local res, err = httpc:request_uri(HASURA_URL, {
         method = METHOD,
         headers = QUERY_HEADERS,

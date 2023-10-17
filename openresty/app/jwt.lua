@@ -91,6 +91,24 @@ local function sign_jwt(subject)
 end
 
 
+local function check_access()
+    local method = ngx.req.get_method()
+    if method == 'GET' then
+        return ngx.exit(ngx.OK)
+    elseif method == 'PUT' or method == 'DELETE' then
+        local token, err = verify_jwt()
+        if not token then
+            ngx.var.xlog = err
+            return ngx.exit(ngx.HTTP_UNAUTHORIZED)
+        end
+        if token.sub == ngx.var[1] then
+            return ngx.exit(ngx.OK)
+        end
+    end
+    return ngx.exit(ngx.HTTP_FORBIDDEN)
+end
+
+
 ---@param pk string
 ---@param sk string
 ---@param exp string
@@ -113,4 +131,5 @@ return {
     init = init,
     sign_jwt = sign_jwt,
     verify_jwt = verify_jwt,
+    check_access = check_access,
 }

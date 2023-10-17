@@ -1,14 +1,27 @@
-FROM openresty/openresty:alpine
+FROM openresty/openresty:alpine as build
 
-RUN apk add --no-cache curl perl libsodium libsodium-dev
+RUN apk add --no-cache curl perl
 
 RUN opm get bungle/lua-resty-template \
-  && opm get antonheryanto/lua-resty-post \
   && opm get spacewander/luafilesystem \
   && opm get fffonion/lua-resty-acme \
   && opm get jprjr/luasodium \
   && echo "All done!"
 
-ADD ./app/* /usr/local/openresty/site/lualib/app/
+FROM openresty/openresty:alpine as production
 
-ADD ./conf/* /etc/nginx/
+COPY --from=build /usr/local/openresty/site/lualib /usr/local/openresty/site/lualib
+
+COPY <<EOF /usr/local/share/lua/5.1/build_config.lua
+require'resty.template'.new{root = '/etc/nginx'}.render'nginx.conf'
+EOF
+
+RUN apk add --no-cache libsodium libsodium-dev
+
+ADD ./app /usr/local/openresty/site/lualib/app
+
+ADD ./conf /etc/nginx
+
+ENV LUA_PATH="/usr/local/openresty/site/lualib/?.lua;;"
+
+CMD luajit -l build_config > /var/run/openresty/nginx.conf && openresty -c /var/run/openresty/nginx.conf

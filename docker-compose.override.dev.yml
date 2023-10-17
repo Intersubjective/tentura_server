@@ -7,9 +7,9 @@ services:
       - ./openresty/test:/usr/local/openresty/site/lualib/test
     environment:
       - "WORKERS=2"
-      - "ERROR_LOG_LEVEL=debug"
-      - "HASURA_LOCATION_OVERRIDE=root"
+      - "IS_PROD=false"
       - "LUA_CODE_CACHE=off"
+      - "ERROR_LOG_LEVEL=debug"
 
   hasura:
     environment:
