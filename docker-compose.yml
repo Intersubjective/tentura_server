@@ -76,6 +76,22 @@ services:
     logging:
       driver: journald
 
+  meritrank:
+    hostname: meritrank
+    container_name: meritrank
+    build: ./meritrank
+    image: gravity/meritrank
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    networks:
+      - backend
+    environment:
+      - 'POSTGRES_DB_URL=postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/postgres'
+      - 'MERITRANK_DEBUG_LEVEL=INFO'
+    logging:
+      driver: journald
+
 volumes:
   openresty-cert:
 
