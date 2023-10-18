@@ -68,6 +68,28 @@ BEGIN
     RETURN NEW;
 END;
 $$;
+CREATE FUNCTION public.notify_meritrank_entity_mutation() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF (TG_OP = 'DELETE') THEN
+        PERFORM pg_notify('edges', row_to_json(row(NEW.id, NEW.user_id, 0))::text);
+        PERFORM pg_notify('edges', row_to_json(row(NEW.user_id, NEW.id, 0))::text);
+    ELSIF (TG_OP = 'INSERT') THEN
+        PERFORM pg_notify('edges', row_to_json(row(NEW.id, NEW.user_id, 1))::text);
+        PERFORM pg_notify('edges', row_to_json(row(NEW.user_id, NEW.id, 1))::text);
+    END IF;
+    RETURN NEW;
+END;
+$$;
+CREATE FUNCTION public.notify_meritrank_vote_mutation() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    PERFORM pg_notify('edges', row_to_json(row(NEW.subject, NEW.object, NEW.amount))::text);
+    RETURN NEW;
+END;
+$$;
 CREATE FUNCTION public.public_vote_for_beacon_on_create() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
@@ -95,8 +117,8 @@ CREATE TABLE public."user" (
     id text DEFAULT concat('U', "substring"((gen_random_uuid())::text, '\w{12}'::text)) NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    title text NOT NULL,
-    description text NOT NULL,
+    title text DEFAULT ''::text NOT NULL,
+    description text DEFAULT ''::text NOT NULL,
     has_picture boolean DEFAULT false NOT NULL,
     public_key text NOT NULL,
     CONSTRAINT user__description_len CHECK ((char_length(description) <= 2048)),
@@ -205,6 +227,11 @@ ALTER TABLE ONLY public.vote_user
 CREATE INDEX beacon_author_id ON public.beacon USING btree (user_id);
 CREATE TRIGGER decrement_beacon_comments_count AFTER DELETE ON public.comment FOR EACH ROW EXECUTE FUNCTION public.decrement_beacon_comments_count();
 CREATE TRIGGER increment_beacon_comments_count AFTER INSERT ON public.comment FOR EACH ROW EXECUTE FUNCTION public.increment_beacon_comments_count();
+CREATE TRIGGER notify_meritrank_entity_beacon_mutation AFTER INSERT OR DELETE ON public.beacon FOR EACH ROW EXECUTE FUNCTION public.notify_meritrank_entity_mutation();
+CREATE TRIGGER notify_meritrank_entity_comment_mutation AFTER INSERT OR DELETE ON public.beacon FOR EACH ROW EXECUTE FUNCTION public.notify_meritrank_entity_mutation();
+CREATE TRIGGER notify_meritrank_vote_beacon_mutation AFTER INSERT OR UPDATE ON public.vote_beacon FOR EACH ROW EXECUTE FUNCTION public.notify_meritrank_vote_mutation();
+CREATE TRIGGER notify_meritrank_vote_comment_mutation AFTER INSERT OR UPDATE ON public.vote_comment FOR EACH ROW EXECUTE FUNCTION public.notify_meritrank_vote_mutation();
+CREATE TRIGGER notify_meritrank_vote_user_mutation AFTER INSERT OR UPDATE ON public.vote_user FOR EACH ROW EXECUTE FUNCTION public.notify_meritrank_vote_mutation();
 CREATE TRIGGER set_public_beacon_updated_at BEFORE UPDATE ON public.beacon FOR EACH ROW EXECUTE FUNCTION public.set_current_timestamp_updated_at();
 COMMENT ON TRIGGER set_public_beacon_updated_at ON public.beacon IS 'trigger to set value of column "updated_at" to current timestamp on row update';
 CREATE TRIGGER set_public_user_updated_at BEFORE UPDATE ON public."user" FOR EACH ROW EXECUTE FUNCTION public.set_current_timestamp_updated_at();
