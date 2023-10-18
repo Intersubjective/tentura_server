@@ -1,5 +1,5 @@
 {
-  "resource_version": 115,
+  "resource_version": 177,
   "metadata": {
     "version": 3,
     "sources": [
@@ -456,8 +456,7 @@
                   "computed_fields": [
                     "my_vote"
                   ],
-                  "filter": {},
-                  "allow_aggregations": true
+                  "filter": {}
                 }
               }
             ],
@@ -500,12 +499,6 @@
                 }
               }
             ]
-          },
-          {
-            "table": {
-              "name": "edges",
-              "schema": "public"
-            }
           },
           {
             "table": {
@@ -1001,26 +994,36 @@
         "definition": {
           "url": "http://meritrank:8000/graphql",
           "timeout_seconds": 60,
-          "customization": {
-            "root_fields_namespace": "mt"
-          }
+          "customization": {}
         },
         "comment": "",
         "permissions": [
           {
             "role": "user",
             "definition": {
-              "schema": "schema  { query: Query }\n\ntype Edge { dest: String!\n  src: String!\n  weight: Float!\n}\n\ntype NodeScore { ego: String!\n  node: String!\n  score: Float!\n}\n\ntype Query { edge(src: String!, dest: String!): Edge\n  edges(src: String!): [Edge!]!\n  score(ego: String!, node: String!): NodeScore!\n  scores(ego: String!, where: NodeScoreWhereInput = null, limit: Int = null): [NodeScore!]!\n}\n\ninput NodeInput {like: String = null\n}\n\ninput NodeScoreWhereInput {node: NodeInput = null\n  score: ScoreInput = null\n}\n\ninput ScoreInput {gt: Float = null\n  gte: Float = null\n  lt: Float = null\n  lte: Float = null\n}"
+              "schema": "schema  { query: Query }\n\ntype Edge { dest: String!\n  src: String!\n  weight: Float!\n}\n\ntype GravityGraph { beacons: [NodeScore]!\n  comments: [NodeScore]!\n  edges: [Edge]!\n  users: [NodeScore]!\n}\n\ntype NodeScore { ego: String!\n  node: String!\n  score: Float!\n}\n\ntype Query { edge(src: String!, dest: String!): Edge\n  edges(src: String!): [Edge!]!\n  gravityGraph(ego: String!, focus: String, minAbsScore: Float, positiveOnly: Boolean, recurseDepth: Int): GravityGraph!\n  score(ego: String!, node: String!): NodeScore!\n  scores(ego: String!, where: NodeScoreWhereInput, limit: Int): [NodeScore!]!\n}\n\ninput NodeInput {like: String\n}\n\ninput NodeScoreWhereInput {node: NodeInput\n  score: ScoreInput\n}\n\ninput ScoreInput {gt: Float\n  gte: Float\n  lt: Float\n  lte: Float\n}"
             }
           }
         ],
         "remote_relationships": [
           {
-            "relationships": [],
-            "type_name": "Edge"
-          },
-          {
             "relationships": [
+              {
+                "definition": {
+                  "to_source": {
+                    "field_mapping": {
+                      "node": "id"
+                    },
+                    "relationship_type": "object",
+                    "source": "postgres",
+                    "table": {
+                      "name": "user",
+                      "schema": "public"
+                    }
+                  }
+                },
+                "name": "user"
+              },
               {
                 "definition": {
                   "to_source": {
@@ -1036,6 +1039,22 @@
                   }
                 },
                 "name": "beacon"
+              },
+              {
+                "definition": {
+                  "to_source": {
+                    "field_mapping": {
+                      "node": "id"
+                    },
+                    "relationship_type": "object",
+                    "source": "postgres",
+                    "table": {
+                      "name": "comment",
+                      "schema": "public"
+                    }
+                  }
+                },
+                "name": "comment"
               }
             ],
             "type_name": "NodeScore"
