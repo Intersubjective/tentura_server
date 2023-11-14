@@ -73,11 +73,11 @@ CREATE FUNCTION public.notify_meritrank_entity_mutation() RETURNS trigger
     AS $$
 BEGIN
     IF (TG_OP = 'DELETE') THEN
-        PERFORM pg_notify('edges', row_to_json(row(NEW.id, NEW.user_id, 0))::text);
-        PERFORM pg_notify('edges', row_to_json(row(NEW.user_id, NEW.id, 0))::text);
+        PERFORM pg_notify('edges', json_build_object('src', NEW.id, 'dest', NEW.user_id, 'weight', 0)::text);
+        PERFORM pg_notify('edges', json_build_object('src', NEW.user_id, 'dest', NEW.id, 'weight', 0)::text);
     ELSIF (TG_OP = 'INSERT') THEN
-        PERFORM pg_notify('edges', row_to_json(row(NEW.id, NEW.user_id, 1))::text);
-        PERFORM pg_notify('edges', row_to_json(row(NEW.user_id, NEW.id, 1))::text);
+        PERFORM pg_notify('edges', json_build_object('src', NEW.id, 'dest', NEW.user_id, 'weight', 1)::text);
+        PERFORM pg_notify('edges', json_build_object('src', NEW.user_id, 'dest', NEW.id, 'weight', 1)::text);
     END IF;
     RETURN NEW;
 END;
@@ -86,7 +86,7 @@ CREATE FUNCTION public.notify_meritrank_vote_mutation() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    PERFORM pg_notify('edges', row_to_json(row(NEW.subject, NEW.object, NEW.amount))::text);
+    PERFORM pg_notify('edges', json_build_object('src', NEW.subject, 'dest', NEW.object, 'weight', NEW.amount)::text);
     RETURN NEW;
 END;
 $$;
@@ -138,6 +138,14 @@ BEGIN
   session_variables := current_setting('hasura.user', 't');
   INSERT INTO vote_comment (subject, object, amount)
     VALUES ((session_variables->>'x-hasura-user-id')::text, NEW.id, 1);
+  RETURN NEW;
+END;
+$$;
+CREATE FUNCTION public.vote_for_zero_on_create() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  INSERT INTO vote_user (subject, object, amount) VALUES (NEW.id, 'U000000000000', 1);
   RETURN NEW;
 END;
 $$;
@@ -228,7 +236,7 @@ CREATE INDEX beacon_author_id ON public.beacon USING btree (user_id);
 CREATE TRIGGER decrement_beacon_comments_count AFTER DELETE ON public.comment FOR EACH ROW EXECUTE FUNCTION public.decrement_beacon_comments_count();
 CREATE TRIGGER increment_beacon_comments_count AFTER INSERT ON public.comment FOR EACH ROW EXECUTE FUNCTION public.increment_beacon_comments_count();
 CREATE TRIGGER notify_meritrank_entity_beacon_mutation AFTER INSERT OR DELETE ON public.beacon FOR EACH ROW EXECUTE FUNCTION public.notify_meritrank_entity_mutation();
-CREATE TRIGGER notify_meritrank_entity_comment_mutation AFTER INSERT OR DELETE ON public.beacon FOR EACH ROW EXECUTE FUNCTION public.notify_meritrank_entity_mutation();
+CREATE TRIGGER notify_meritrank_entity_comment_mutation AFTER INSERT OR DELETE ON public.comment FOR EACH ROW EXECUTE FUNCTION public.notify_meritrank_entity_mutation();
 CREATE TRIGGER notify_meritrank_vote_beacon_mutation AFTER INSERT OR UPDATE ON public.vote_beacon FOR EACH ROW EXECUTE FUNCTION public.notify_meritrank_vote_mutation();
 CREATE TRIGGER notify_meritrank_vote_comment_mutation AFTER INSERT OR UPDATE ON public.vote_comment FOR EACH ROW EXECUTE FUNCTION public.notify_meritrank_vote_mutation();
 CREATE TRIGGER notify_meritrank_vote_user_mutation AFTER INSERT OR UPDATE ON public.vote_user FOR EACH ROW EXECUTE FUNCTION public.notify_meritrank_vote_mutation();
@@ -242,6 +250,7 @@ CREATE TRIGGER set_public_vote_comment_updated_at BEFORE UPDATE ON public.vote_c
 COMMENT ON TRIGGER set_public_vote_comment_updated_at ON public.vote_comment IS 'trigger to set value of column "updated_at" to current timestamp on row update';
 CREATE TRIGGER set_public_vote_user_updated_at BEFORE UPDATE ON public.vote_user FOR EACH ROW EXECUTE FUNCTION public.set_current_timestamp_updated_at();
 COMMENT ON TRIGGER set_public_vote_user_updated_at ON public.vote_user IS 'trigger to set value of column "updated_at" to current timestamp on row update';
+CREATE TRIGGER vote_for_zero_on_create AFTER INSERT ON public."user" FOR EACH ROW EXECUTE FUNCTION public.vote_for_zero_on_create();
 ALTER TABLE ONLY public.beacon_hidden
     ADD CONSTRAINT beacon_hidden_beacon_id_fkey FOREIGN KEY (beacon_id) REFERENCES public.beacon(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE ONLY public.beacon_hidden

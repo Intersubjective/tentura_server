@@ -1,5 +1,5 @@
 {
-  "resource_version": 177,
+  "resource_version": 257,
   "metadata": {
     "version": 3,
     "sources": [
@@ -198,33 +198,6 @@
                   }
                 },
                 "comment": ""
-              }
-            ],
-            "event_triggers": [
-              {
-                "name": "add_beacon",
-                "definition": {
-                  "enable_manual": false,
-                  "insert": {
-                    "columns": "*"
-                  }
-                },
-                "retry_conf": {
-                  "interval_sec": 10,
-                  "num_retries": 0,
-                  "timeout_sec": 60
-                },
-                "webhook": "{{MERITRANK_PATH}}",
-                "request_transform": {
-                  "body": {
-                    "action": "transform",
-                    "template": "{\n  \"query\": \"mutation AddEdges($nodeA: String!, $nodeB: String!) {edgeA: putEdge(src: $nodeA, dest: $nodeB, weight: 1) {weight} edgeB: putEdge(src: $nodeB, dest: $nodeA, weight: 1) {weight}}\",\n  \"variables\": {\n    \"nodeA\": {{$body.event.data.new.id}},\n    \"nodeB\": {{$body.event.data.new.user_id}}\n  }\n}"
-                  },
-                  "method": "POST",
-                  "query_params": {},
-                  "template_engine": "Kriti",
-                  "version": 2
-                }
               }
             ]
           },
@@ -471,33 +444,6 @@
                   }
                 }
               }
-            ],
-            "event_triggers": [
-              {
-                "name": "add_comment",
-                "definition": {
-                  "enable_manual": false,
-                  "insert": {
-                    "columns": "*"
-                  }
-                },
-                "retry_conf": {
-                  "interval_sec": 10,
-                  "num_retries": 0,
-                  "timeout_sec": 60
-                },
-                "webhook": "{{MERITRANK_PATH}}",
-                "request_transform": {
-                  "body": {
-                    "action": "transform",
-                    "template": "{\n  \"query\": \"mutation AddEdges($nodeA: String!, $nodeB: String!) {edgeA: putEdge(src: $nodeA, dest: $nodeB, weight: 1) {weight} edgeB: putEdge(src: $nodeB, dest: $nodeA, weight: 1) {weight}}\",\n  \"variables\": {\n    \"nodeA\": {{$body.event.data.new.id}},\n    \"nodeB\": {{$body.event.data.new.user_id}}\n  }\n}"
-                  },
-                  "method": "POST",
-                  "query_params": {},
-                  "template_engine": "Kriti",
-                  "version": 2
-                }
-              }
             ]
           },
           {
@@ -736,40 +682,6 @@
                   "check": null
                 }
               }
-            ],
-            "event_triggers": [
-              {
-                "name": "mutate_vote_beacon",
-                "definition": {
-                  "enable_manual": false,
-                  "insert": {
-                    "columns": "*"
-                  },
-                  "update": {
-                    "columns": [
-                      "amount",
-                      "object",
-                      "subject"
-                    ]
-                  }
-                },
-                "retry_conf": {
-                  "interval_sec": 10,
-                  "num_retries": 0,
-                  "timeout_sec": 60
-                },
-                "webhook": "http://meritrank:8000/graphql",
-                "request_transform": {
-                  "body": {
-                    "action": "transform",
-                    "template": "{\n  \"query\": \"mutation AddEdges($nodeA: String!, $nodeB: String!, $weight: Float!) {putEdge(src: $nodeA, dest: $nodeB, weight: $weight) {weight}}\",\n  \"variables\": {\n    \"nodeA\": {{$body.event.data.new.subject}},\n    \"nodeB\": {{$body.event.data.new.object}},\n    \"weight\": {{$body.event.data.new.amount}}\n  }\n}\n"
-                  },
-                  "method": "POST",
-                  "query_params": {},
-                  "template_engine": "Kriti",
-                  "version": 2
-                }
-              }
             ]
           },
           {
@@ -834,40 +746,6 @@
                     }
                   },
                   "check": null
-                }
-              }
-            ],
-            "event_triggers": [
-              {
-                "name": "mutate_vote_comment",
-                "definition": {
-                  "enable_manual": false,
-                  "insert": {
-                    "columns": "*"
-                  },
-                  "update": {
-                    "columns": [
-                      "amount",
-                      "subject",
-                      "object"
-                    ]
-                  }
-                },
-                "retry_conf": {
-                  "interval_sec": 10,
-                  "num_retries": 0,
-                  "timeout_sec": 60
-                },
-                "webhook": "http://meritrank:8000/graphql",
-                "request_transform": {
-                  "body": {
-                    "action": "transform",
-                    "template": "{\n  \"query\": \"mutation AddEdges($nodeA: String!, $nodeB: String!, $weight: Float!) {putEdge(src: $nodeA, dest: $nodeB, weight: $weight) {weight}}\",\n  \"variables\": {\n    \"nodeA\": {{$body.event.data.new.subject}},\n    \"nodeB\": {{$body.event.data.new.object}},\n    \"weight\": {{$body.event.data.new.amount}}\n  }\n}\n"
-                  },
-                  "method": "POST",
-                  "query_params": {},
-                  "template_engine": "Kriti",
-                  "version": 2
                 }
               }
             ]
@@ -942,40 +820,6 @@
                 },
                 "comment": ""
               }
-            ],
-            "event_triggers": [
-              {
-                "name": "mutate_vote_user",
-                "definition": {
-                  "enable_manual": false,
-                  "insert": {
-                    "columns": "*"
-                  },
-                  "update": {
-                    "columns": [
-                      "amount",
-                      "subject",
-                      "object"
-                    ]
-                  }
-                },
-                "retry_conf": {
-                  "interval_sec": 10,
-                  "num_retries": 0,
-                  "timeout_sec": 60
-                },
-                "webhook": "http://meritrank:8000/graphql",
-                "request_transform": {
-                  "body": {
-                    "action": "transform",
-                    "template": "{\n  \"query\": \"mutation AddEdges($nodeA: String!, $nodeB: String!, $weight: Float!) {putEdge(src: $nodeA, dest: $nodeB, weight: $weight) {weight}}\",\n  \"variables\": {\n    \"nodeA\": {{$body.event.data.new.subject}},\n    \"nodeB\": {{$body.event.data.new.object}},\n    \"weight\": {{$body.event.data.new.amount}}\n  }\n}\n"
-                  },
-                  "method": "POST",
-                  "query_params": {},
-                  "template_engine": "Kriti",
-                  "version": 2
-                }
-              }
             ]
           }
         ],
@@ -1001,7 +845,7 @@
           {
             "role": "user",
             "definition": {
-              "schema": "schema  { query: Query }\n\ntype Edge { dest: String!\n  src: String!\n  weight: Float!\n}\n\ntype GravityGraph { beacons: [NodeScore]!\n  comments: [NodeScore]!\n  edges: [Edge]!\n  users: [NodeScore]!\n}\n\ntype NodeScore { ego: String!\n  node: String!\n  score: Float!\n}\n\ntype Query { edge(src: String!, dest: String!): Edge\n  edges(src: String!): [Edge!]!\n  gravityGraph(ego: String!, focus: String, minAbsScore: Float, positiveOnly: Boolean, recurseDepth: Int): GravityGraph!\n  score(ego: String!, node: String!): NodeScore!\n  scores(ego: String!, where: NodeScoreWhereInput, limit: Int): [NodeScore!]!\n}\n\ninput NodeInput {like: String\n}\n\ninput NodeScoreWhereInput {node: NodeInput\n  score: ScoreInput\n}\n\ninput ScoreInput {gt: Float\n  gte: Float\n  lt: Float\n  lte: Float\n}"
+              "schema": "schema  { query: Query }\n\ntype Edge { dest: String!\n  src: String!\n  weight: Float!\n}\n\ntype GravityGraph { beacons: [NodeScore]!\n  comments: [NodeScore]!\n  edges: [Edge]!\n  users: [NodeScore]!\n}\n\ntype MutualScore { ego: String!\n  egoScore: Float!\n  node: String!\n  nodeScore: Float!\n}\n\ntype NodeScore { ego: String!\n  node: String!\n  score: Float!\n}\n\ntype Query { edge(src: String!, dest: String!): Edge\n  edges(src: String!): [Edge!]!\n  gravityGraph(ego: String! @preset(value: \"x-hasura-user-id\"), focus: String, positiveOnly: Boolean, limit: Int): GravityGraph!\n  score(ego: String!, node: String!): NodeScore\n  scores(ego: String! @preset(value: \"x-hasura-user-id\"), where: NodeScoreWhereInput, limit: Int, hidePersonal: Boolean): [NodeScore!]!\n  usersStats(ego: String! @preset(value: \"x-hasura-user-id\")): [MutualScore!]!\n}\n\ninput NodeInput {like: String\n}\n\ninput NodeScoreWhereInput {node: NodeInput\n  score: ScoreInput\n}\n\ninput ScoreInput {gt: Float\n  gte: Float\n  lt: Float\n  lte: Float\n}"
             }
           }
         ],
@@ -1058,6 +902,27 @@
               }
             ],
             "type_name": "NodeScore"
+          },
+          {
+            "relationships": [
+              {
+                "definition": {
+                  "to_source": {
+                    "field_mapping": {
+                      "node": "id"
+                    },
+                    "relationship_type": "object",
+                    "source": "postgres",
+                    "table": {
+                      "name": "user",
+                      "schema": "public"
+                    }
+                  }
+                },
+                "name": "user"
+              }
+            ],
+            "type_name": "MutualScore"
           }
         ]
       }
