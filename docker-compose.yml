@@ -68,7 +68,7 @@ services:
     hostname: meritrank
     container_name: meritrank
     build: ./meritrank
-    image: gravity/meritrank
+    image: vbulavintsev/meritrank-service-python
     restart: unless-stopped
     depends_on:
       - postgres
