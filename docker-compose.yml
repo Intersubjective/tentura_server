@@ -4,7 +4,7 @@ services:
     hostname: openresty
     container_name: openresty
     build: ./openresty
-    image: gravity/openresty
+    image: tentura/openresty
     restart: unless-stopped
     # depends_on:
     #   - hasura
