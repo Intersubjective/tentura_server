@@ -88,7 +88,7 @@ services:
   postgres:
     hostname: postgres
     container_name: postgres
-    image: postgis/postgis
+    image: vbulavintsev/postgres-tentura
     restart: unless-stopped
     volumes:
       - ./pg_data:/var/lib/postgresql/data
