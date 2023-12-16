@@ -6,8 +6,8 @@ services:
     build: ./openresty
     image: gravity/openresty
     restart: unless-stopped
-    depends_on:
-      - hasura
+    # depends_on:
+    #   - hasura
     volumes:
       - /tmp
       - ./images:/srv/images
@@ -32,12 +32,13 @@ services:
       - LUA_SOCKET_POOL_SIZE
       - LUA_CODE_CACHE
       - CERT_CACHE_SIZE
-      - IS_PROD
       - ACME_EMAIL
       - JWT_EXPIRES_IN
       - JWT_PUBLIC_PEM
       - JWT_PRIVATE_PEM
+      - HASURA_LOCATION_OVERRIDE
       - HASURA_GRAPHQL_ADMIN_SECRET
+    command: /bin/ash -c "resty -l app.build_config > /var/run/openresty/nginx.conf && openresty -c /var/run/openresty/nginx.conf"
     logging:
       driver: journald
 
@@ -48,6 +49,7 @@ services:
     restart: unless-stopped
     depends_on:
       - postgres
+      - meritrank
     networks:
       - backend
     environment:
@@ -62,20 +64,6 @@ services:
     logging:
       driver: journald
 
-  postgres:
-    hostname: postgres
-    container_name: postgres
-    image: postgis/postgis
-    restart: unless-stopped
-    volumes:
-      - ./data:/var/lib/postgresql/data
-    networks:
-      - backend
-    environment:
-      - POSTGRES_PASSWORD
-    logging:
-      driver: journald
-
   meritrank:
     hostname: meritrank
     container_name: meritrank
@@ -87,8 +75,27 @@ services:
     networks:
       - backend
     environment:
+      - 'ZERO_NODE=U000000000000'
+      - 'ZERO_HEARTBEAT_PERIOD=86400'
+      - 'EGO_WARMUP=True'
+      - 'EGO_WARMUP_WAIT=60'
       - 'POSTGRES_DB_URL=postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/postgres'
-      - 'MERITRANK_DEBUG_LEVEL=INFO'
+      - 'MERITRANK_DEBUG_LEVEL=DEBUG'
+      - 'POSTGRES_EDGES_CHANNEL=edges'
+    logging:
+      driver: journald
+
+  postgres:
+    hostname: postgres
+    container_name: postgres
+    image: postgis/postgis
+    restart: unless-stopped
+    volumes:
+      - ./pg_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    environment:
+      - POSTGRES_PASSWORD
     logging:
       driver: journald
 
@@ -99,3 +106,4 @@ networks:
   proxy:
   backend:
     internal: true
+
