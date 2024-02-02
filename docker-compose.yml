@@ -33,12 +33,12 @@ services:
       - LUA_CODE_CACHE
       - CERT_CACHE_SIZE
       - ACME_EMAIL
+      - IS_PROD
       - JWT_EXPIRES_IN
       - JWT_PUBLIC_PEM
       - JWT_PRIVATE_PEM
       - HASURA_LOCATION_OVERRIDE
       - HASURA_GRAPHQL_ADMIN_SECRET
-    command: /bin/ash -c "resty -l app.build_config > /var/run/openresty/nginx.conf && openresty -c /var/run/openresty/nginx.conf"
     logging:
       driver: journald
 
@@ -95,8 +95,20 @@ services:
       - backend
     environment:
       - POSTGRES_PASSWORD
+      - 'RUST_SERVICE_URL=tcp://rust-service:10234'
+    depends_on:
+      - rust-service
     logging:
       driver: journald
+
+  rust-service:
+    hostname: rust-service
+    container_name: rust-service
+    image: vbulavintsev/meritrank-service-rust
+    networks:
+      - backend
+    ports:
+      - "10234:10234"
 
 volumes:
   openresty-cert:
