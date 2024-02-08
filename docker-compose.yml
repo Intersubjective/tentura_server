@@ -109,6 +109,8 @@ services:
       - backend
     ports:
       - "10234:10234"
+    environment:
+      - POSTGRES_DB_URL
 
 volumes:
   openresty-cert:
