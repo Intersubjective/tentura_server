@@ -111,6 +111,8 @@ services:
       - "10234:10234"
     environment:
       - POSTGRES_DB_URL
+      - POSTGRES_PASSWORD
+      - 'RUST_SERVICE_URL=tcp://localhost:10234'
 
 volumes:
   openresty-cert:
