@@ -96,8 +96,6 @@ services:
     environment:
       - POSTGRES_PASSWORD
       - 'RUST_SERVICE_URL=tcp://rust-service:10234'
-    depends_on:
-      - rust-service
     logging:
       driver: journald
 
@@ -108,11 +106,15 @@ services:
     networks:
       - backend
     ports:
-      - "10234:10234"
+      - '10234:10234'
     environment:
       - POSTGRES_DB_URL
       - POSTGRES_PASSWORD
       - 'RUST_SERVICE_URL=tcp://localhost:10234'
+    depends_on:
+      - postgres
+    logging:
+      driver: journald
 
 volumes:
   openresty-cert:
