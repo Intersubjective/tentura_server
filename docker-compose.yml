@@ -76,7 +76,7 @@ services:
     environment:
       - 'WALK_COUNT=1000'
       - 'ZERO_NODE=U000000000000'
-      - 'ZERO_HEARTBEAT_PERIOD=86400'
+      - 'ZERO_HEARTBEAT_PERIOD=864000'
       - 'EGO_WARMUP=True'
       - 'EGO_WARMUP_WAIT=60'
       - 'POSTGRES_DB_URL=postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/postgres'
