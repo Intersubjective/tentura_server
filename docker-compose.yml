@@ -67,13 +67,14 @@ services:
   meritrank:
     hostname: meritrank
     container_name: meritrank
-    image: vbulavintsev/meritrank-service-python
+    image: vbulavintsev/meritrank-service-python:1.4.5
     restart: unless-stopped
     depends_on:
       - postgres
     networks:
       - backend
     environment:
+      - 'WALK_COUNT=1000'
       - 'ZERO_NODE=U000000000000'
       - 'ZERO_HEARTBEAT_PERIOD=86400'
       - 'EGO_WARMUP=True'
