@@ -4,7 +4,8 @@ services:
     hostname: openresty
     container_name: openresty
     build: ./openresty
-    image: tentura/openresty
+#    image: tentura/openresty
+    image: vbulavintsev/openresty-tentura
     restart: unless-stopped
     depends_on:
        - hasura
@@ -67,7 +68,7 @@ services:
   meritrank:
     hostname: meritrank
     container_name: meritrank
-    image: vbulavintsev/meritrank-service-python:1.4.5
+    image: vbulavintsev/meritrank-service-python:hasura-args-1
     restart: unless-stopped
     depends_on:
       - postgres
@@ -103,7 +104,7 @@ services:
   rust-service:
     hostname: rust-service
     container_name: rust-service
-    image: vbulavintsev/meritrank-service-rust:v0.0.2
+    image: vbulavintsev/meritrank-service-rust:v0.0.7
     networks:
       - backend
     ports:
@@ -112,6 +113,7 @@ services:
       - POSTGRES_DB_URL
       - POSTGRES_PASSWORD
       - GRAVITY_NUM_WALK
+      - WEIGHT_MIN_LEVEL
       - 'RUST_SERVICE_URL=tcp://0.0.0.0:10234'
     depends_on:
       - postgres
