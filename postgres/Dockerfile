@@ -1,10 +1,10 @@
 FROM rust:1.75.0-alpine as compile
 WORKDIR /usr/project
 RUN apk add cmake make gcc clang15 musl-dev postgresql16 postgresql16-dev openssl-dev git
-RUN git clone https://github.com/Intersubjective/meritrank-psql-connector.git
+RUN head -c 5 /dev/random > random_bytes && git clone https://github.com/Intersubjective/meritrank-psql-connector.git
 WORKDIR /usr/project/meritrank-psql-connector
 ENV RUSTFLAGS="-Ctarget-feature=-crt-static"
-RUN cargo install --locked cargo-pgrx
+RUN cargo install --locked --version=0.11.2 cargo-pgrx
 RUN cargo pgrx init --pg16 pg_config
 RUN cargo pgrx package
 
