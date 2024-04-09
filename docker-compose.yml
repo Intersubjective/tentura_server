@@ -89,7 +89,7 @@ services:
   postgres:
     hostname: postgres
     container_name: postgres
-    image: vbulavintsev/postgres-tentura:v0.0.1
+    image: vbulavintsev/postgres-tentura:v0.0.2
     restart: unless-stopped
     volumes:
       - ./pg_data:/var/lib/postgresql/data
