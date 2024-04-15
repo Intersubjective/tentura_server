@@ -89,7 +89,7 @@ services:
   postgres:
     hostname: postgres
     container_name: postgres
-    image: vbulavintsev/postgres-tentura:v0.0.2
+    image: vbulavintsev/postgres-tentura:v0.0.3
     restart: unless-stopped
     volumes:
       - ./pg_data:/var/lib/postgresql/data
@@ -104,7 +104,7 @@ services:
   rust-service:
     hostname: rust-service
     container_name: rust-service
-    image: vbulavintsev/meritrank-service-rust:v0.0.7
+    image: vbulavintsev/meritrank-service-rust:v0.0.8
     networks:
       - backend
     ports:
