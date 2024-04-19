@@ -10,9 +10,10 @@ RUN opm get bungle/lua-resty-template \
 
 FROM openresty/openresty:alpine as production
 
+ENV BUILD_CONFIG_PATH="/usr/local/share/lua/5.1/build_config.lua"
 COPY --from=build /usr/local/openresty/site/lualib /usr/local/openresty/site/lualib
 
-COPY <<EOF /usr/local/share/lua/5.1/build_config.lua
+COPY <<EOF $BUILD_CONFIG_PATH
 require'resty.template'.new{root = '/etc/nginx'}.render'nginx.conf'
 EOF
 
@@ -24,4 +25,4 @@ ADD ./conf /etc/nginx
 
 ENV LUA_PATH="/usr/local/openresty/site/lualib/?.lua;;"
 
-CMD luajit -l build_config > /var/run/openresty/nginx.conf && openresty -c /var/run/openresty/nginx.conf
+CMD luajit $BUILD_CONFIG_PATH > /var/run/openresty/nginx.conf && openresty -c /var/run/openresty/nginx.conf

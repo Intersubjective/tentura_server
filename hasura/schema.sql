@@ -73,11 +73,15 @@ CREATE FUNCTION public.notify_meritrank_entity_mutation() RETURNS trigger
     AS $$
 BEGIN
     IF (TG_OP = 'DELETE') THEN
-        PERFORM pg_notify('edges', json_build_object('src', NEW.id, 'dest', NEW.user_id, 'weight', 0)::text);
-        PERFORM pg_notify('edges', json_build_object('src', NEW.user_id, 'dest', NEW.id, 'weight', 0)::text);
+--        PERFORM pg_notify('edges', json_build_object('src', NEW.id, 'dest', NEW.user_id, 'weight', 0)::text);
+--        PERFORM pg_notify('edges', json_build_object('src', NEW.user_id, 'dest', NEW.id, 'weight', 0)::text);
+        PERFORM mr_edge(NEW.id, NEW.user_id, 0);
+        PERFORM mr_edge(NEW.user_id, NEW.id, 0);
     ELSIF (TG_OP = 'INSERT') THEN
-        PERFORM pg_notify('edges', json_build_object('src', NEW.id, 'dest', NEW.user_id, 'weight', 1)::text);
-        PERFORM pg_notify('edges', json_build_object('src', NEW.user_id, 'dest', NEW.id, 'weight', 1)::text);
+--        PERFORM pg_notify('edges', json_build_object('src', NEW.id, 'dest', NEW.user_id, 'weight', 1)::text);
+--        PERFORM pg_notify('edges', json_build_object('src', NEW.user_id, 'dest', NEW.id, 'weight', 1)::text);
+        PERFORM mr_edge(NEW.id, NEW.user_id, 1);
+        PERFORM mr_edge(NEW.user_id, NEW.id, 1);
     END IF;
     RETURN NEW;
 END;
@@ -86,7 +90,8 @@ CREATE FUNCTION public.notify_meritrank_vote_mutation() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    PERFORM pg_notify('edges', json_build_object('src', NEW.subject, 'dest', NEW.object, 'weight', NEW.amount)::text);
+--    PERFORM pg_notify('edges', json_build_object('src', NEW.subject, 'dest', NEW.object, 'weight', NEW.amount)::text);
+        PERFORM mr_edge(NEW.subject, NEW.object, NEW.amount);
     RETURN NEW;
 END;
 $$;

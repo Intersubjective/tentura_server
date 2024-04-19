@@ -4,10 +4,11 @@ services:
     hostname: openresty
     container_name: openresty
     build: ./openresty
-    image: tentura/openresty
+#    image: tentura/openresty
+    image: vbulavintsev/openresty-tentura
     restart: unless-stopped
-    # depends_on:
-    #   - hasura
+    depends_on:
+       - hasura
     volumes:
       - /tmp
       - ./images:/srv/images
@@ -33,12 +34,12 @@ services:
       - LUA_CODE_CACHE
       - CERT_CACHE_SIZE
       - ACME_EMAIL
+      - IS_PROD
       - JWT_EXPIRES_IN
       - JWT_PUBLIC_PEM
       - JWT_PRIVATE_PEM
       - HASURA_LOCATION_OVERRIDE
       - HASURA_GRAPHQL_ADMIN_SECRET
-    command: /bin/ash -c "resty -l app.build_config > /var/run/openresty/nginx.conf && openresty -c /var/run/openresty/nginx.conf"
     logging:
       driver: journald
 
@@ -67,7 +68,7 @@ services:
   meritrank:
     hostname: meritrank
     container_name: meritrank
-    image: vbulavintsev/meritrank-service-python:1.4.5
+    image: vbulavintsev/meritrank-service-python:hasura-args-1
     restart: unless-stopped
     depends_on:
       - postgres
@@ -88,7 +89,7 @@ services:
   postgres:
     hostname: postgres
     container_name: postgres
-    image: vbulavintsev/postgres-tentura
+    image: vbulavintsev/postgres-tentura:v0.0.3
     restart: unless-stopped
     volumes:
       - ./pg_data:/var/lib/postgresql/data
@@ -96,6 +97,26 @@ services:
       - backend
     environment:
       - POSTGRES_PASSWORD
+      - 'RUST_SERVICE_URL=tcp://rust-service:10234'
+    logging:
+      driver: journald
+
+  rust-service:
+    hostname: rust-service
+    container_name: rust-service
+    image: vbulavintsev/meritrank-service-rust:v0.0.8
+    networks:
+      - backend
+    ports:
+      - '10234:10234'
+    environment:
+      - POSTGRES_DB_URL
+      - POSTGRES_PASSWORD
+      - GRAVITY_NUM_WALK
+      - WEIGHT_MIN_LEVEL
+      - 'RUST_SERVICE_URL=tcp://0.0.0.0:10234'
+    depends_on:
+      - postgres
     logging:
       driver: journald
 
