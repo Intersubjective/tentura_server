@@ -1,0 +1,25 @@
+name: Build and test
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+  workflow_dispatch: 
+
+jobs:
+  docker_build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build postgres docker image
+      working-directory: ./postgres
+      run: |
+        sudo docker build -t tentura_postgres:latest .
+        sudo docker image save tentura_postgres:latest -o tentura_postgres_latest.tar
+    - name: Upload postgres docker image
+      uses: actions/upload-artifact@v4
+      with:
+        name: tentura_postgres_latest.tar
+        path: tentura_postgres_latest.tar
+        retention-days: 2
