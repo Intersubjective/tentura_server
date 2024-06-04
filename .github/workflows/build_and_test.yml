@@ -16,7 +16,7 @@ jobs:
       working-directory: ./postgres
       run: |
         docker build -t tentura_postgres:latest .
-        docker image save tentura_postgres:latest -o tentura_postgres_latest.tar
+        docker image save tentura_postgres:latest -o ../tentura_postgres_latest.tar
     - name: Upload postgres docker image
       uses: actions/upload-artifact@v4
       with:
