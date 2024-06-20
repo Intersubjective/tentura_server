@@ -37,8 +37,8 @@ services:
       - JWT_PUBLIC_PEM
       - JWT_PRIVATE_PEM
       - WITH_TEST_LOCATION
+      - HASURA_ADMIN_SECRET
       - HASURA_LOCATION_OVERRIDE
-      - HASURA_GRAPHQL_ADMIN_SECRET
       - 'HASURA_URL=http://hasura:8080/v1/graphql'
     logging:
       driver: journald
