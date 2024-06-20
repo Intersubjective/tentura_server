@@ -33,10 +33,8 @@ local function parse_jwt(token)
     local jwt, err = from_json(from_b64url(sub(message, JWT_BODY_START_AT)) or '')
     if err then
         return nil, err
-
     elseif type(jwt) ~= 'table' then
         return nil, 'Wrong JWT!'
-
     elseif (jwt.exp or 0) < time() then
         return nil, 'JWT expired'
     else
@@ -82,7 +80,7 @@ local function sign_jwt(subject)
         exp = now + JWT_EXPIRES_IN
     })
     local message = JWT_HEADER .. jwt_body
-    return to_json{
+    return to_json {
         subject = subject,
         token_type = 'bearer',
         access_token = message .. '.' .. to_b64url(sign(message, SK)),

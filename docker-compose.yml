@@ -1,22 +1,23 @@
-version: '3.8'
+name: tentura
+
 services:
   openresty:
     hostname: openresty
     container_name: openresty
-    image: vbulavintsev/openresty-tentura
+    image: vbulavintsev/openresty-tentura:${OPENRESTY_VERSION:-latest}
     restart: unless-stopped
     depends_on:
        - hasura
     volumes:
       - /tmp
       - ./images:/srv/images
-      - ./static:/usr/local/openresty/nginx/html
+      - ./static:/usr/local/openresty/nginx/html:ro
       - openresty-cert:/etc/nginx/cert
     tmpfs:
       - /var/run/openresty
     ports:
-      - "80:80"
-      - "443:443"
+      - 80:80/tcp
+      - 443:443/tcp
     networks:
       - proxy
       - backend
@@ -32,23 +33,24 @@ services:
       - LUA_CODE_CACHE
       - CERT_CACHE_SIZE
       - ACME_EMAIL
-      - IS_PROD
       - JWT_EXPIRES_IN
       - JWT_PUBLIC_PEM
       - JWT_PRIVATE_PEM
+      - WITH_TEST_LOCATION
       - HASURA_LOCATION_OVERRIDE
       - HASURA_GRAPHQL_ADMIN_SECRET
+      - 'HASURA_URL=http://hasura:8080/v1/graphql'
     logging:
       driver: journald
 
   hasura:
     hostname: hasura
     container_name: hasura
-    image: hasura/graphql-engine
+    image: hasura/graphql-engine:${HASURA_VERSION:-latest}
     restart: unless-stopped
+    read_only: true
     depends_on:
       - postgres
-      - meritrank-service
     networks:
       - backend
     environment:
@@ -65,8 +67,10 @@ services:
   postgres:
     hostname: postgres
     container_name: postgres
-    image: vbulavintsev/postgres-tentura:v0.0.16
+    image: vbulavintsev/postgres-tentura:${POSTGRES_VERSION:-latest}
     restart: unless-stopped
+    depends_on:
+      - meritrank-service
     volumes:
       - ./pg_data:/var/lib/postgresql/data
     networks:
@@ -80,12 +84,11 @@ services:
   meritrank-service:
     hostname: meritrank-service
     container_name: meritrank-service
-    image: vbulavintsev/meritrank-service:v0.0.20
+    image: vbulavintsev/meritrank-service:${MERITRANK_VERSION:-latest}
     restart: unless-stopped
+    read_only: true
     networks:
       - backend
-    ports:
-      - '10234:10234'
     environment:
       - MERITRANK_NUM_WALK
       - MERITRANK_TOP_NODES_LIMIT
