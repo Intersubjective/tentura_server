@@ -1,4 +1,5 @@
 SET check_function_bodies = false;
+CREATE TYPE public.scorerec;
 CREATE TABLE public.beacon (
     id text DEFAULT concat('B', "substring"((gen_random_uuid())::text, '\w{12}'::text)) NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
@@ -7,10 +8,11 @@ CREATE TABLE public.beacon (
     title text NOT NULL,
     description text NOT NULL,
     timerange tstzrange,
-    place public.geography,
     enabled boolean DEFAULT true NOT NULL,
     has_picture boolean DEFAULT false NOT NULL,
     comments_count integer DEFAULT 0 NOT NULL,
+    lat double precision,
+    long double precision,
     CONSTRAINT beacon__description_len CHECK ((char_length(description) <= 2048)),
     CONSTRAINT beacon__title_len CHECK ((char_length(title) <= 128))
 );
@@ -60,6 +62,13 @@ BEGIN
     RETURN NEW;
 END;
 $$;
+CREATE VIEW public.edge AS
+ SELECT ''::text AS src,
+    ''::text AS dst,
+    (0)::double precision AS amount;
+CREATE FUNCTION public.graph(ego text, focus text, context text DEFAULT ''::text, positive_only boolean DEFAULT true, "limit" integer DEFAULT 3) RETURNS SETOF public.edge
+    LANGUAGE c IMMUTABLE
+    AS '$libdir/pgmer2', 'mr_graph_wrapper';
 CREATE FUNCTION public.increment_beacon_comments_count() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
@@ -68,101 +77,6 @@ BEGIN
     RETURN NEW;
 END;
 $$;
-CREATE FUNCTION public.notify_meritrank_entity_mutation() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-    IF (TG_OP = 'DELETE') THEN
---        PERFORM pg_notify('edges', json_build_object('src', NEW.id, 'dest', NEW.user_id, 'weight', 0)::text);
---        PERFORM pg_notify('edges', json_build_object('src', NEW.user_id, 'dest', NEW.id, 'weight', 0)::text);
-        PERFORM mr_edge(NEW.id, NEW.user_id, 0);
-        PERFORM mr_edge(NEW.user_id, NEW.id, 0);
-    ELSIF (TG_OP = 'INSERT') THEN
---        PERFORM pg_notify('edges', json_build_object('src', NEW.id, 'dest', NEW.user_id, 'weight', 1)::text);
---        PERFORM pg_notify('edges', json_build_object('src', NEW.user_id, 'dest', NEW.id, 'weight', 1)::text);
-        PERFORM mr_edge(NEW.id, NEW.user_id, 1);
-        PERFORM mr_edge(NEW.user_id, NEW.id, 1);
-    END IF;
-    RETURN NEW;
-END;
-$$;
-CREATE FUNCTION public.notify_meritrank_vote_mutation() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
---    PERFORM pg_notify('edges', json_build_object('src', NEW.subject, 'dest', NEW.object, 'weight', NEW.amount)::text);
-        PERFORM mr_edge(NEW.subject, NEW.object, NEW.amount);
-    RETURN NEW;
-END;
-$$;
-CREATE FUNCTION public.public_vote_for_beacon_on_create() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
-DECLARE
-  session_variables json;
-BEGIN
-  session_variables := current_setting('hasura.user', 't');
-  INSERT INTO vote_beacon (subject, object, amount)
-    VALUES ((session_variables->>'x-hasura-user-id')::text, NEW.id, 1);
-  RETURN NEW;
-END;
-$$;
-CREATE FUNCTION public.set_current_timestamp_updated_at() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
-DECLARE
-  _new record;
-BEGIN
-  _new := NEW;
-  _new."updated_at" = NOW();
-  RETURN _new;
-END;
-$$;
-CREATE TABLE public."user" (
-    id text DEFAULT concat('U', "substring"((gen_random_uuid())::text, '\w{12}'::text)) NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    title text DEFAULT ''::text NOT NULL,
-    description text DEFAULT ''::text NOT NULL,
-    has_picture boolean DEFAULT false NOT NULL,
-    public_key text NOT NULL,
-    CONSTRAINT user__description_len CHECK ((char_length(description) <= 2048)),
-    CONSTRAINT user__title_len CHECK ((char_length(title) <= 128))
-);
-CREATE FUNCTION public.user_get_my_vote(user_row public."user", hasura_session json) RETURNS integer
-    LANGUAGE sql STABLE
-    AS $$
-  SELECT amount FROM vote_user WHERE subject = (hasura_session ->> 'x-hasura-user-id')::TEXT AND object = user_row.id;
-$$;
-CREATE FUNCTION public.vote_for_comment_on_create() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
-DECLARE
-  session_variables json;
-BEGIN
-  session_variables := current_setting('hasura.user', 't');
-  INSERT INTO vote_comment (subject, object, amount)
-    VALUES ((session_variables->>'x-hasura-user-id')::text, NEW.id, 1);
-  RETURN NEW;
-END;
-$$;
-CREATE FUNCTION public.vote_for_zero_on_create() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-  INSERT INTO vote_user (subject, object, amount) VALUES (NEW.id, 'U000000000000', 1);
-  RETURN NEW;
-END;
-$$;
-CREATE TABLE public.beacon_hidden (
-    user_id text NOT NULL,
-    beacon_id text NOT NULL,
-    hidden_until timestamp with time zone NOT NULL
-);
-CREATE TABLE public.beacon_pinned (
-    user_id text NOT NULL,
-    beacon_id text NOT NULL
-);
 CREATE TABLE public.vote_beacon (
     subject text NOT NULL,
     object text NOT NULL,
@@ -219,6 +133,108 @@ UNION
     vote_comment.object AS dst,
     vote_comment.amount
    FROM public.vote_comment;
+CREATE PROCEDURE public.init_graph()
+    LANGUAGE sql
+    BEGIN ATOMIC
+ SELECT public.mr_put_edge(edges.src, edges.dst, (edges.amount)::double precision, ''::text) AS mr_put_edge
+    FROM public.edges;
+END;
+CREATE FUNCTION public.mr_calculate() RETURNS text
+    LANGUAGE c STRICT
+    AS '$libdir/pgmer2', 'mr_zerorec_wrapper';
+CREATE FUNCTION public.notify_meritrank_entity_mutation() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF (TG_OP = 'DELETE') THEN
+        PERFORM pg_notify('edges', json_build_object('src', NEW.id, 'dest', NEW.user_id, 'weight', 0)::text);
+        PERFORM pg_notify('edges', json_build_object('src', NEW.user_id, 'dest', NEW.id, 'weight', 0)::text);
+    ELSIF (TG_OP = 'INSERT') THEN
+        PERFORM pg_notify('edges', json_build_object('src', NEW.id, 'dest', NEW.user_id, 'weight', 1)::text);
+        PERFORM pg_notify('edges', json_build_object('src', NEW.user_id, 'dest', NEW.id, 'weight', 1)::text);
+    END IF;
+    RETURN NEW;
+END;
+$$;
+CREATE FUNCTION public.notify_meritrank_vote_mutation() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    PERFORM mr_put_edge(NEW.subject, NEW.object, NEW.amount, '');
+    RETURN NEW;
+END;
+$$;
+CREATE FUNCTION public.public_vote_for_beacon_on_create() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+  session_variables json;
+BEGIN
+  session_variables := current_setting('hasura.user', 't');
+  INSERT INTO vote_beacon (subject, object, amount)
+    VALUES ((session_variables->>'x-hasura-user-id')::text, NEW.id, 1);
+  RETURN NEW;
+END;
+$$;
+CREATE FUNCTION public.scores(ego text, start_with text, score_lt double precision, score_lte double precision, score_gt double precision, score_gte double precision, "limit" integer) RETURNS SETOF public.edge
+    LANGUAGE c IMMUTABLE
+    AS '$libdir/pgmer2', 'mr_scores_wrapper';
+CREATE FUNCTION public.set_current_timestamp_updated_at() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+  _new record;
+BEGIN
+  _new := NEW;
+  _new."updated_at" = NOW();
+  RETURN _new;
+END;
+$$;
+CREATE TABLE public."user" (
+    id text DEFAULT concat('U', "substring"((gen_random_uuid())::text, '\w{12}'::text)) NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    title text DEFAULT ''::text NOT NULL,
+    description text DEFAULT ''::text NOT NULL,
+    has_picture boolean DEFAULT false NOT NULL,
+    public_key text NOT NULL,
+    CONSTRAINT user__description_len CHECK ((char_length(description) <= 2048)),
+    CONSTRAINT user__title_len CHECK ((char_length(title) <= 128))
+);
+CREATE FUNCTION public.user_get_my_vote(user_row public."user", hasura_session json) RETURNS integer
+    LANGUAGE sql STABLE
+    AS $$
+  SELECT amount FROM vote_user WHERE subject = (hasura_session ->> 'x-hasura-user-id')::TEXT AND object = user_row.id;
+$$;
+CREATE FUNCTION public.vote_for_comment_on_create() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+  session_variables json;
+BEGIN
+  session_variables := current_setting('hasura.user', 't');
+  INSERT INTO vote_comment (subject, object, amount)
+    VALUES ((session_variables->>'x-hasura-user-id')::text, NEW.id, 1);
+  RETURN NEW;
+END;
+$$;
+CREATE FUNCTION public.vote_for_zero_on_create() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  INSERT INTO vote_user (subject, object, amount) VALUES (NEW.id, 'U000000000000', 1);
+  RETURN NEW;
+END;
+$$;
+CREATE TABLE public.beacon_hidden (
+    user_id text NOT NULL,
+    beacon_id text NOT NULL,
+    hidden_until timestamp with time zone NOT NULL
+);
+CREATE TABLE public.beacon_pinned (
+    user_id text NOT NULL,
+    beacon_id text NOT NULL
+);
 ALTER TABLE ONLY public.beacon_hidden
     ADD CONSTRAINT beacon_hidden_pkey PRIMARY KEY (user_id, beacon_id);
 ALTER TABLE ONLY public.beacon_pinned
@@ -282,3 +298,5 @@ ALTER TABLE ONLY public.vote_user
     ADD CONSTRAINT vote_user_object_fkey FOREIGN KEY (object) REFERENCES public."user"(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE ONLY public.vote_user
     ADD CONSTRAINT vote_user_subject_fkey FOREIGN KEY (subject) REFERENCES public."user"(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
+INSERT INTO public."user" (id, title, description, public_key) VALUES ('U000000000000', 'Tentura Root', 'Kind a black hole', 'nologin')
