@@ -4,7 +4,7 @@ services:
   openresty:
     hostname: openresty
     container_name: openresty
-    image: vbulavintsev/openresty-tentura:${OPENRESTY_VERSION:-latest}
+    image: vbulavintsev/openresty-tentura:v0.0.1
     restart: unless-stopped
     depends_on:
        - hasura
@@ -22,52 +22,43 @@ services:
       - proxy
       - backend
     environment:
-      - WORKERS
-      - RESOLVER
-      - SERVER_NAME
-      - ERROR_LOG_LEVEL
-      - WORKER_CONNECTIONS
-      - CLIENT_MAX_BODY_SIZE
-      - CLIENT_BODY_BUFFER_SIZE
-      - LUA_SOCKET_POOL_SIZE
-      - LUA_CODE_CACHE
-      - CERT_CACHE_SIZE
-      - ACME_EMAIL
-      - JWT_EXPIRES_IN
       - JWT_PUBLIC_PEM
       - JWT_PRIVATE_PEM
-      - WITH_TEST_LOCATION
-      - HASURA_ADMIN_SECRET
-      - HASURA_LOCATION_OVERRIDE
       - 'HASURA_URL=http://hasura:8080/v1/graphql'
+    secrets:
+      - jwt_public_pem
+      - jwt_private_pem
+      - hasura_graphql_admin_secret
     logging:
       driver: journald
 
   hasura:
     hostname: hasura
     container_name: hasura
-    image: hasura/graphql-engine:${HASURA_VERSION:-latest}
+    image: hasura/graphql-engine:v2.40.1
     restart: unless-stopped
-    read_only: true
+    init: true
     depends_on:
       - postgres
     networks:
       - backend
     environment:
-      - HASURA_GRAPHQL_DEV_MODE
       - HASURA_GRAPHQL_ADMIN_SECRET
-      - HASURA_GRAPHQL_ENABLE_CONSOLE
       - 'HASURA_GRAPHQL_ENABLE_TELEMETRY=false'
+      - 'HASURA_GRAPHQL_STRINGIFY_NUMERIC_TYPES=true'
       - 'HASURA_GRAPHQL_INFER_FUNCTION_PERMISSIONS=false'
       - 'HASURA_GRAPHQL_DATABASE_URL=postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/postgres'
       - 'HASURA_GRAPHQL_JWT_SECRET={"type":"Ed25519", "key":"${JWT_PUBLIC_PEM}", "claims_map": {"x-hasura-allowed-roles": ["user", "admin"], "x-hasura-default-role": "user", "x-hasura-user-id": {"path": "$$.sub"}}}'
+    secrets:
+      - jwt_public_pem
+      - hasura_graphql_admin_secret
     logging:
       driver: journald
 
   postgres:
     hostname: postgres
     container_name: postgres
-    image: vbulavintsev/postgres-tentura:${POSTGRES_VERSION:-latest}
+    image: vbulavintsev/postgres-tentura:v0.0.16
     restart: unless-stopped
     depends_on:
       - meritrank-service
@@ -78,21 +69,21 @@ services:
     environment:
       - POSTGRES_PASSWORD
       - 'MERITRANK_SERVICE_URL=tcp://meritrank-service:10234'
+    secrets:
+      - postgres_password
     logging:
       driver: journald
 
   meritrank-service:
     hostname: meritrank-service
     container_name: meritrank-service
-    image: vbulavintsev/meritrank-service:${MERITRANK_VERSION:-latest}
+    image: vbulavintsev/meritrank-service:v0.0.20
     restart: unless-stopped
     read_only: true
+    init: true
     networks:
       - backend
     environment:
-      - MERITRANK_NUM_WALK
-      - MERITRANK_TOP_NODES_LIMIT
-      - MERITRANK_SERVICE_THREADS
       - 'MERITRANK_SERVICE_URL=tcp://0.0.0.0:10234'
     logging:
       driver: journald
@@ -104,3 +95,14 @@ networks:
   proxy:
   backend:
     internal: true
+
+secrets:
+  jwt_public_pem:
+    environment: 'JWT_PUBLIC_PEM'
+  jwt_private_pem:
+    environment: 'JWT_PRIVATE_PEM'
+  postgres_password:
+    environment: 'POSTGRES_PASSWORD'
+  hasura_graphql_admin_secret:
+    environment: 'HASURA_GRAPHQL_ADMIN_SECRET'
+  
