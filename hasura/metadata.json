@@ -1,5 +1,5 @@
 {
-  "resource_version": 167,
+  "resource_version": 5,
   "metadata": {
     "version": 3,
     "sources": [
@@ -21,18 +21,6 @@
               }
             ],
             "array_relationships": [
-              {
-                "name": "beacon_hiddens",
-                "using": {
-                  "foreign_key_constraint_on": {
-                    "column": "beacon_id",
-                    "table": {
-                      "name": "beacon_hidden",
-                      "schema": "public"
-                    }
-                  }
-                }
-              },
               {
                 "name": "beacon_pinneds",
                 "using": {
@@ -167,94 +155,6 @@
                   },
                   "check": null
                 }
-              }
-            ],
-            "delete_permissions": [
-              {
-                "role": "user",
-                "permission": {
-                  "filter": {
-                    "user_id": {
-                      "_eq": "X-Hasura-User-Id"
-                    }
-                  }
-                },
-                "comment": ""
-              }
-            ]
-          },
-          {
-            "table": {
-              "name": "beacon_hidden",
-              "schema": "public"
-            },
-            "object_relationships": [
-              {
-                "name": "beacon",
-                "using": {
-                  "foreign_key_constraint_on": "beacon_id"
-                }
-              },
-              {
-                "name": "user",
-                "using": {
-                  "foreign_key_constraint_on": "user_id"
-                }
-              }
-            ],
-            "insert_permissions": [
-              {
-                "role": "user",
-                "permission": {
-                  "check": {
-                    "user_id": {
-                      "_eq": "X-Hasura-User-Id"
-                    }
-                  },
-                  "set": {
-                    "user_id": "x-hasura-User-Id"
-                  },
-                  "columns": [
-                    "beacon_id",
-                    "hidden_until"
-                  ]
-                },
-                "comment": ""
-              }
-            ],
-            "select_permissions": [
-              {
-                "role": "user",
-                "permission": {
-                  "columns": [
-                    "beacon_id",
-                    "user_id",
-                    "hidden_until"
-                  ],
-                  "filter": {
-                    "user_id": {
-                      "_eq": "X-Hasura-User-Id"
-                    }
-                  }
-                },
-                "comment": ""
-              }
-            ],
-            "update_permissions": [
-              {
-                "role": "user",
-                "permission": {
-                  "columns": [
-                    "hidden_until"
-                  ],
-                  "filter": {
-                    "user_id": {
-                      "_eq": "X-Hasura-User-Id"
-                    }
-                  },
-                  "check": null
-                },
-                "comment": ""
               }
             ],
             "delete_permissions": [
@@ -501,18 +401,6 @@
               "schema": "public"
             },
             "array_relationships": [
-              {
-                "name": "beacon_hiddens",
-                "using": {
-                  "foreign_key_constraint_on": {
-                    "column": "user_id",
-                    "table": {
-                      "name": "beacon_hidden",
-                      "schema": "public"
-                    }
-                  }
-                }
-              },
               {
                 "name": "beacon_pinneds",
                 "using": {
@@ -888,12 +776,7 @@
             "function": {
               "name": "scores",
               "schema": "public"
-            },
-            "permissions": [
-              {
-                "role": "user"
-              }
-            ]
+            }
           }
         ],
         "configuration": {
