@@ -4,7 +4,7 @@ services:
   openresty:
     hostname: openresty
     container_name: openresty
-    image: vbulavintsev/openresty-tentura:v0.0.1
+    image: vbulavintsev/openresty-tentura:v0.0.2
     restart: unless-stopped
     depends_on:
        - hasura
@@ -35,7 +35,7 @@ services:
   hasura:
     hostname: hasura
     container_name: hasura
-    image: hasura/graphql-engine:v2.40.1
+    image: hasura/graphql-engine:v2.40.2
     restart: unless-stopped
     init: true
     depends_on:

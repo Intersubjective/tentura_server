@@ -1,4 +1,4 @@
-FROM openresty/openresty:alpine as build
+FROM openresty/openresty:alpine AS build
 
 RUN apk add --no-cache curl perl
 
@@ -8,7 +8,7 @@ RUN opm get bungle/lua-resty-template \
   && opm get jprjr/luasodium \
   && echo "All done!"
 
-FROM openresty/openresty:alpine as production
+FROM openresty/openresty:alpine
 
 EXPOSE 80/tcp
 
