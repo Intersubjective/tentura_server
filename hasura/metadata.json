@@ -1,5 +1,5 @@
 {
-  "resource_version": 5,
+  "resource_version": 198,
   "metadata": {
     "version": 3,
     "sources": [
@@ -60,17 +60,6 @@
             ],
             "computed_fields": [
               {
-                "name": "is_hidden",
-                "definition": {
-                  "function": {
-                    "name": "beacon_get_is_hidden",
-                    "schema": "public"
-                  },
-                  "session_argument": "hasura_session",
-                  "table_argument": "beacon_row"
-                }
-              },
-              {
                 "name": "is_pinned",
                 "definition": {
                   "function": {
@@ -91,6 +80,18 @@
                   "session_argument": "hasura_session",
                   "table_argument": "beacon_row"
                 }
+              },
+              {
+                "name": "score",
+                "definition": {
+                  "function": {
+                    "name": "beacon_get_score",
+                    "schema": "public"
+                  },
+                  "session_argument": "hasura_session",
+                  "table_argument": "beacon_row"
+                },
+                "comment": ""
               }
             ],
             "insert_permissions": [
@@ -102,6 +103,7 @@
                     "user_id": "x-hasura-User-Id"
                   },
                   "columns": [
+                    "context",
                     "description",
                     "has_picture",
                     "lat",
@@ -118,23 +120,24 @@
                 "role": "user",
                 "permission": {
                   "columns": [
+                    "comments_count",
+                    "context",
+                    "created_at",
+                    "description",
                     "enabled",
                     "has_picture",
+                    "id",
                     "lat",
                     "long",
-                    "comments_count",
-                    "description",
-                    "id",
+                    "timerange",
                     "title",
-                    "user_id",
-                    "created_at",
                     "updated_at",
-                    "timerange"
+                    "user_id"
                   ],
                   "computed_fields": [
-                    "is_hidden",
                     "is_pinned",
-                    "my_vote"
+                    "my_vote",
+                    "score"
                   ],
                   "filter": {}
                 },
@@ -335,7 +338,7 @@
             },
             "object_relationships": [
               {
-                "name": "Beacon",
+                "name": "beacon",
                 "using": {
                   "manual_configuration": {
                     "column_mapping": {
@@ -350,7 +353,7 @@
                 }
               },
               {
-                "name": "Comment",
+                "name": "comment",
                 "using": {
                   "manual_configuration": {
                     "column_mapping": {
@@ -365,7 +368,7 @@
                 }
               },
               {
-                "name": "User",
+                "name": "user",
                 "using": {
                   "manual_configuration": {
                     "column_mapping": {
@@ -385,7 +388,45 @@
                 "role": "user",
                 "permission": {
                   "columns": [
-                    "amount",
+                    "score",
+                    "dst",
+                    "src"
+                  ],
+                  "filter": {}
+                },
+                "comment": ""
+              }
+            ]
+          },
+          {
+            "table": {
+              "name": "mutual_score",
+              "schema": "public"
+            },
+            "object_relationships": [
+              {
+                "name": "user",
+                "using": {
+                  "manual_configuration": {
+                    "column_mapping": {
+                      "dst": "id"
+                    },
+                    "insertion_order": null,
+                    "remote_table": {
+                      "name": "user",
+                      "schema": "public"
+                    }
+                  }
+                }
+              }
+            ],
+            "select_permissions": [
+              {
+                "role": "user",
+                "permission": {
+                  "columns": [
+                    "dst_score",
+                    "src_score",
                     "dst",
                     "src"
                   ],
@@ -497,6 +538,18 @@
                   "session_argument": "hasura_session",
                   "table_argument": "user_row"
                 }
+              },
+              {
+                "name": "score",
+                "definition": {
+                  "function": {
+                    "name": "user_get_score",
+                    "schema": "public"
+                  },
+                  "session_argument": "hasura_session",
+                  "table_argument": "user_row"
+                },
+                "comment": ""
               }
             ],
             "select_permissions": [
@@ -513,7 +566,8 @@
                     "updated_at"
                   ],
                   "computed_fields": [
-                    "my_vote"
+                    "my_vote",
+                    "score"
                   ],
                   "filter": {},
                   "limit": 10
@@ -548,6 +602,57 @@
                     }
                   }
                 }
+              }
+            ]
+          },
+          {
+            "table": {
+              "name": "user_context",
+              "schema": "public"
+            },
+            "insert_permissions": [
+              {
+                "role": "user",
+                "permission": {
+                  "check": {},
+                  "set": {
+                    "user_id": "x-hasura-User-Id"
+                  },
+                  "columns": [
+                    "context_name"
+                  ]
+                },
+                "comment": ""
+              }
+            ],
+            "select_permissions": [
+              {
+                "role": "user",
+                "permission": {
+                  "columns": [
+                    "context_name",
+                    "user_id"
+                  ],
+                  "filter": {
+                    "user_id": {
+                      "_eq": "X-Hasura-User-Id"
+                    }
+                  }
+                },
+                "comment": ""
+              }
+            ],
+            "delete_permissions": [
+              {
+                "role": "user",
+                "permission": {
+                  "filter": {
+                    "user_id": {
+                      "_eq": "X-Hasura-User-Id"
+                    }
+                  }
+                },
+                "comment": ""
               }
             ]
           },
@@ -766,217 +871,81 @@
               "name": "graph",
               "schema": "public"
             },
-            "permissions": [
-              {
-                "role": "user"
-              }
-            ]
+            "configuration": {
+              "custom_root_fields": {},
+              "session_argument": "hasura_session"
+            }
           },
           {
             "function": {
-              "name": "scores",
+              "name": "my_field",
               "schema": "public"
+            },
+            "configuration": {
+              "custom_root_fields": {},
+              "session_argument": "hasura_session"
             }
+          },
+          {
+            "function": {
+              "name": "rating",
+              "schema": "public"
+            },
+            "configuration": {
+              "custom_root_fields": {},
+              "session_argument": "hasura_session"
+            }
+          }
+        ],
+        "native_queries": [
+          {
+            "arguments": {},
+            "code": "SELECT true as is_ok, mr_calculate()::text as message;",
+            "returns": "Result",
+            "root_field_name": "mr_calculate"
+          },
+          {
+            "arguments": {},
+            "code": "SELECT true AS is_ok, count(*)::text AS message FROM (SELECT mr_put_edge(edges.src, edges.dst, edges.amount, '') FROM edges)",
+            "returns": "Result",
+            "root_field_name": "mr_init"
+          },
+          {
+            "arguments": {},
+            "code": "SELECT true as is_ok, mr_reset()::text as message;",
+            "returns": "Result",
+            "root_field_name": "mr_reset"
+          }
+        ],
+        "logical_models": [
+          {
+            "fields": [
+              {
+                "name": "is_ok",
+                "type": {
+                  "nullable": false,
+                  "scalar": "boolean"
+                }
+              },
+              {
+                "name": "message",
+                "type": {
+                  "nullable": false,
+                  "scalar": "text"
+                }
+              }
+            ],
+            "name": "Result"
           }
         ],
         "configuration": {
           "connection_info": {
-            "database_url": "postgres://postgres:cd32ddbbKyLE9caakp331@postgres:5432/postgres",
+            "database_url": "postgres://postgres:password@postgres:5432/postgres",
             "isolation_level": "read-committed",
             "use_prepared_statements": false
           }
         }
       }
-    ],
-    "actions": [
-      {
-        "name": "getPlaceName",
-        "definition": {
-          "handler": "https://nominatim.openstreetmap.org/reverse",
-          "output_type": "ReverseGeocodingOutput",
-          "arguments": [
-            {
-              "name": "lat",
-              "type": "Float!"
-            },
-            {
-              "name": "long",
-              "type": "Float!"
-            }
-          ],
-          "request_transform": {
-            "body": {
-              "action": "remove"
-            },
-            "method": "GET",
-            "query_params": {
-              "accept-language": "en",
-              "format": "geojson",
-              "lat": "{{$body.input.lat}}",
-              "lon": "{{$body.input.long}}",
-              "zoom": "15"
-            },
-            "request_headers": {
-              "add_headers": {},
-              "remove_headers": [
-                "content-type"
-              ]
-            },
-            "template_engine": "Kriti",
-            "version": 2
-          },
-          "type": "query"
-        }
-      }
-    ],
-    "custom_types": {
-      "objects": [
-        {
-          "name": "Address",
-          "fields": [
-            {
-              "name": "city",
-              "type": "String"
-            },
-            {
-              "name": "city_district",
-              "type": "String"
-            },
-            {
-              "name": "commercial",
-              "type": "String"
-            },
-            {
-              "name": "country",
-              "type": "String"
-            },
-            {
-              "name": "country_code",
-              "type": "String"
-            },
-            {
-              "name": "ISO31662lvl15",
-              "type": "String"
-            },
-            {
-              "name": "ISO31662lvl4",
-              "type": "String"
-            },
-            {
-              "name": "region",
-              "type": "String"
-            },
-            {
-              "name": "state",
-              "type": "String"
-            },
-            {
-              "name": "suburb",
-              "type": "String"
-            }
-          ]
-        },
-        {
-          "name": "Features",
-          "fields": [
-            {
-              "name": "bbox",
-              "type": "[Float]"
-            },
-            {
-              "name": "geometry",
-              "type": "Geometry"
-            },
-            {
-              "name": "properties",
-              "type": "Properties"
-            },
-            {
-              "name": "type",
-              "type": "String"
-            }
-          ]
-        },
-        {
-          "name": "Geometry",
-          "fields": [
-            {
-              "name": "coordinates",
-              "type": "[Float]"
-            },
-            {
-              "name": "type",
-              "type": "String"
-            }
-          ]
-        },
-        {
-          "name": "Properties",
-          "fields": [
-            {
-              "name": "address",
-              "type": "Address"
-            },
-            {
-              "name": "addresstype",
-              "type": "String"
-            },
-            {
-              "name": "category",
-              "type": "String"
-            },
-            {
-              "name": "display_name",
-              "type": "String"
-            },
-            {
-              "name": "importance",
-              "type": "Float"
-            },
-            {
-              "name": "name",
-              "type": "String"
-            },
-            {
-              "name": "osm_id",
-              "type": "Int"
-            },
-            {
-              "name": "osm_type",
-              "type": "String"
-            },
-            {
-              "name": "place_id",
-              "type": "Int"
-            },
-            {
-              "name": "place_rank",
-              "type": "Int"
-            },
-            {
-              "name": "type",
-              "type": "String"
-            }
-          ]
-        },
-        {
-          "name": "ReverseGeocodingOutput",
-          "fields": [
-            {
-              "name": "features",
-              "type": "[Features]"
-            },
-            {
-              "name": "licence",
-              "type": "String"
-            },
-            {
-              "name": "type",
-              "type": "String"
-            }
-          ]
-        }
-      ]
-    }
+    ]
   }
 }
