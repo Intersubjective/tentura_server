@@ -259,12 +259,12 @@ CREATE FUNCTION public.notify_meritrank_beacon_mutation() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    IF (TG_OP = 'DELETE') THEN
-        PERFORM mr_delete_edge(NEW.id, NEW.user_id, NEW.context);
-        PERFORM mr_delete_edge(NEW.user_id, NEW.id, NEW.context);
-    ELSIF (TG_OP = 'INSERT') THEN
+    IF (TG_OP = 'INSERT') THEN
         PERFORM mr_put_edge(NEW.id, NEW.user_id, 1::double precision, NEW.context);
         PERFORM mr_put_edge(NEW.user_id, NEW.id, 1::double precision, NEW.context);
+    ELSIF (TG_OP = 'DELETE') THEN
+        PERFORM mr_delete_edge(OLD.id, OLD.user_id, OLD.context);
+        PERFORM mr_delete_edge(OLD.user_id, OLD.id, OLD.context);
     END IF;
     RETURN NEW;
 END;
@@ -284,12 +284,12 @@ DECLARE
     context text;
 BEGIN
     SELECT beacon.context INTO context FROM beacon WHERE beacon.id = NEW.beacon_id;
-    IF (TG_OP = 'DELETE') THEN
-        PERFORM mr_delete_edge(NEW.id, NEW.user_id, context);
-        PERFORM mr_delete_edge(NEW.user_id, NEW.id, context);
-    ELSIF (TG_OP = 'INSERT') THEN
+    IF (TG_OP = 'INSERT') THEN
         PERFORM mr_put_edge(NEW.id, NEW.user_id, 1::double precision, context);
         PERFORM mr_put_edge(NEW.user_id, NEW.id, 1::double precision, context);
+    ELSIF (TG_OP = 'DELETE') THEN
+        PERFORM mr_delete_edge(OLD.id, OLD.user_id, context);
+        PERFORM mr_delete_edge(OLD.user_id, OLD.id, context);
     END IF;
     RETURN NEW;
 END;
@@ -306,10 +306,10 @@ CREATE FUNCTION public.notify_meritrank_user_mutation() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    IF (TG_OP = 'DELETE') THEN
-        PERFORM mr_delete_edge(NEW.id, 'U000000000000', ''::text);
-    ELSIF (TG_OP = 'INSERT') THEN
+    IF (TG_OP = 'INSERT') THEN
         PERFORM mr_put_edge(NEW.id, 'U000000000000', 1::double precision, ''::text);
+    ELSIF (TG_OP = 'DELETE') THEN
+        PERFORM mr_delete_edge(OLD.id, 'U000000000000', ''::text);
     END IF;
   RETURN NEW;
 END;
@@ -329,11 +329,11 @@ DECLARE
     context text;
 BEGIN
     SELECT beacon.context INTO context FROM beacon WHERE beacon.id = NEW.object;
-    PERFORM mr_put_edge(
-        NEW.subject,
-        NEW.object,
-        (NEW.amount)::double precision,
-        context);
+    IF (TG_OP = 'INSERT' OR TG_OP = 'UPDATE') THEN
+        PERFORM mr_put_edge(NEW.subject, NEW.object, (NEW.amount)::double precision, context);
+    ELSIF (TG_OP = 'DELETE') THEN
+        PERFORM mr_delete_edge(OLD.subject, OLD.object, context);
+    END IF;
     RETURN NEW;
 END;
 $$;
@@ -354,11 +354,11 @@ DECLARE
 BEGIN
     SELECT comment.beacon_id INTO beacon_id FROM comment WHERE comment.id = NEW.object;
     SELECT beacon.context INTO context FROM beacon WHERE beacon.id = beacon_id;
-    PERFORM mr_put_edge(
-        NEW.subject,
-        NEW.object,
-        (NEW.amount)::double precision,
-        context);
+    IF (TG_OP = 'INSERT' OR TG_OP = 'UPDATE') THEN
+        PERFORM mr_put_edge(NEW.subject, NEW.object, (NEW.amount)::double precision, context);
+    ELSIF (TG_OP = 'DELETE') THEN
+        PERFORM mr_delete_edge(OLD.subject, OLD.object, context);
+    END IF;
     RETURN NEW;
 END;
 $$;
@@ -374,7 +374,11 @@ CREATE FUNCTION public.notify_meritrank_vote_user_mutation() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    PERFORM mr_put_edge(NEW.subject, NEW.object, (NEW.amount)::double precision, ''::text);
+    IF (TG_OP = 'INSERT' OR TG_OP = 'UPDATE') THEN
+        PERFORM mr_put_edge(NEW.subject, NEW.object, (NEW.amount)::double precision, ''::text);
+    ELSIF (TG_OP = 'DELETE') THEN
+        PERFORM mr_delete_edge(OLD.subject, OLD.object, ''::text);
+    END IF;
     RETURN NEW;
 END;
 $$;
@@ -912,4 +916,3 @@ ALTER TABLE ONLY public.vote_user
 --
 -- PostgreSQL database dump complete
 --
-
