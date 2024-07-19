@@ -92,6 +92,7 @@ end
 ---@param pk string
 ---@param sk string
 ---@param exp string
+---@return nil
 local function init(pk, sk, exp)
     local expire = tonumber(exp)
     if expire then

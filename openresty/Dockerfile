@@ -1,6 +1,4 @@
-FROM openresty/openresty:alpine AS build
-
-RUN apk add --no-cache curl perl
+FROM openresty/openresty:alpine-fat AS build
 
 RUN opm get bungle/lua-resty-template \
   && opm get spacewander/luafilesystem \

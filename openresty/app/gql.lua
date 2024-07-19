@@ -43,6 +43,7 @@ end
 
 ---@param hasura_url string
 ---@param hasura_admin_secret string
+---@return nil
 local function init(hasura_url, hasura_admin_secret)
     if type(hasura_url) == 'string' and hasura_url ~= '' then
         HASURA_URL = hasura_url
