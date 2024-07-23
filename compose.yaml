@@ -4,14 +4,13 @@ services:
   openresty:
     hostname: openresty
     container_name: openresty
-    image: vbulavintsev/openresty-tentura:v0.0.3
+    image: vbulavintsev/openresty-tentura
     restart: unless-stopped
     depends_on:
        - hasura
     volumes:
       - /tmp
       - ./images:/srv/images
-      - ./static:/usr/local/openresty/nginx/html:ro
       - openresty-cert:/etc/nginx/cert
     tmpfs:
       - /var/run/openresty
@@ -24,6 +23,7 @@ services:
     environment:
       - JWT_PUBLIC_PEM
       - JWT_PRIVATE_PEM
+      - HASURA_GRAPHQL_ADMIN_SECRET
       - 'HASURA_URL=http://hasura:8080/v1/graphql'
     secrets:
       - jwt_public_pem
@@ -58,7 +58,7 @@ services:
   postgres:
     hostname: postgres
     container_name: postgres
-    image: vbulavintsev/postgres-tentura:v0.0.22
+    image: vbulavintsev/postgres-tentura
     restart: unless-stopped
     depends_on:
       - meritrank-service
@@ -77,7 +77,7 @@ services:
   meritrank-service:
     hostname: meritrank-service
     container_name: meritrank-service
-    image: vbulavintsev/meritrank-service:v0.0.27
+    image: vbulavintsev/meritrank-service
     restart: unless-stopped
     read_only: true
     init: true

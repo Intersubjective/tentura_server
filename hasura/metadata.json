@@ -1,5 +1,5 @@
 {
-  "resource_version": 198,
+  "resource_version": 217,
   "metadata": {
     "version": 3,
     "sources": [
@@ -874,7 +874,12 @@
             "configuration": {
               "custom_root_fields": {},
               "session_argument": "hasura_session"
-            }
+            },
+            "permissions": [
+              {
+                "role": "user"
+              }
+            ]
           },
           {
             "function": {
@@ -884,7 +889,12 @@
             "configuration": {
               "custom_root_fields": {},
               "session_argument": "hasura_session"
-            }
+            },
+            "permissions": [
+              {
+                "role": "user"
+              }
+            ]
           },
           {
             "function": {
@@ -894,13 +904,18 @@
             "configuration": {
               "custom_root_fields": {},
               "session_argument": "hasura_session"
-            }
+            },
+            "permissions": [
+              {
+                "role": "user"
+              }
+            ]
           }
         ],
         "native_queries": [
           {
             "arguments": {},
-            "code": "SELECT true as is_ok, mr_calculate()::text as message;",
+            "code": "SELECT true as is_ok, mr_zerorec(true)::text as message;",
             "returns": "Result",
             "root_field_name": "mr_calculate"
           },

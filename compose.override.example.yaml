@@ -1,9 +1,10 @@
 services:
   openresty:
     restart: "no"
-    image: vbulavintsev/openresty-tentura:v0.0.1
+    build: ./openresty
     volumes:
       - ./openresty/conf/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./openresty/static:/usr/local/openresty/nginx/html:ro
       - ./openresty/app:/usr/local/openresty/site/lualib/app:ro
       - ./openresty/test:/usr/local/openresty/site/lualib/test:ro
     environment:
@@ -24,7 +25,7 @@ services:
 
   hasura:
     restart: "no"
-    image: hasura/graphql-engine:v2.40.1
+    image: hasura/graphql-engine
     environment:
       - "HASURA_GRAPHQL_DEV_MODE=true"
       - "HASURA_GRAPHQL_LOG_LEVEL=debug"
@@ -33,11 +34,9 @@ services:
 
   postgres:
     restart: "no"
-    image: vbulavintsev/postgres-tentura:v0.0.16
 
   meritrank-service:
     restart: "no"
-    image: vbulavintsev/meritrank-service:v0.0.20
     environment:
       - MERITRANK_NUM_WALK
       - MERITRANK_TOP_NODES_LIMIT
