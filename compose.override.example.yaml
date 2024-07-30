@@ -3,6 +3,7 @@ services:
     restart: "no"
     build: ./openresty
     volumes:
+      - ./openresty/conf/app.conf:/etc/nginx/app.conf:ro
       - ./openresty/conf/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./openresty/static:/usr/local/openresty/nginx/html:ro
       - ./openresty/app:/usr/local/openresty/site/lualib/app:ro
@@ -10,7 +11,6 @@ services:
     environment:
       - RESOLVER
       - ACME_EMAIL
-      - SERVER_NAME
       - WORKER_CONNECTIONS
       - CLIENT_MAX_BODY_SIZE
       - CLIENT_BODY_BUFFER_SIZE
@@ -21,6 +21,7 @@ services:
       - "WORKERS=2"
       - "LUA_CODE_CACHE=off"
       - "ERROR_LOG_LEVEL=debug"
+      - "SERVER_NAME=localhost"
       - "WITH_TEST_LOCATION=true"
 
   hasura:

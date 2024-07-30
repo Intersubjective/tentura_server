@@ -1,5 +1,8 @@
 {
     "recommendations": [
-        "sumneko.lua"
+        "sumneko.lua",
+        "ahmadalli.vscode-nginx-conf",
+        "apollographql.vscode-apollo",
+        "uniquevision.vscode-plpgsql-lsp"
     ]
 }

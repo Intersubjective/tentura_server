@@ -13,7 +13,7 @@ local match = string.match
 local from_b64 = ngx.decode_base64
 local get_headers = ngx.req.get_headers
 
-local to_json = require 'cjson'.encode
+local to_json = require 'cjson.safe'.encode
 local from_json = require 'cjson.safe'.decode
 local to_b64url = require 'ngx.base64'.encode_base64url
 local from_b64url = require 'ngx.base64'.decode_base64url
@@ -78,7 +78,7 @@ local function sign_jwt(subject)
         sub = subject,
         iat = now,
         exp = now + JWT_EXPIRES_IN
-    })
+    } or '')
     local message = JWT_HEADER .. jwt_body
     return to_json {
         subject = subject,
