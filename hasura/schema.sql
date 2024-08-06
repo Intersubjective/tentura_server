@@ -217,15 +217,103 @@ $$;
 ALTER FUNCTION public.increment_beacon_comments_count() OWNER TO postgres;
 
 --
--- Name: mr_calculate(); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: meritrank_init(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION public.mr_calculate() RETURNS text
-    LANGUAGE c STRICT
-    AS '$libdir/pgmer2', 'mr_zerorec_wrapper';
+CREATE FUNCTION public.meritrank_init() RETURNS integer
+    LANGUAGE plpgsql IMMUTABLE
+    AS $$
+DECLARE
+  _count integer := 0;
+  _total integer := 0;
+BEGIN
+  -- Edge from User to Zero
+  SELECT count(*) INTO STRICT _count FROM (
+    SELECT mr_put_edge(edges.src, edges.dst, 1, '') FROM (
+      SELECT "user".id AS src,
+        'U000000000000' AS dst
+      FROM "user" WHERE ("user".id <> 'U000000000000'::text)
+    ) AS edges);
+  _total := _count;
+
+  -- Edge from User to User (votes)
+  SELECT count(*) INTO STRICT _count FROM (
+    SELECT mr_put_edge(edges.src, edges.dst, edges.amount, '') FROM (
+      SELECT vote_user.subject AS src,
+        vote_user.object AS dst,
+        vote_user.amount AS amount
+      FROM vote_user
+    ) AS edges);
+  _total := _total + _count;
+
+  -- Edge from User to Beacon
+  SELECT count(*) INTO STRICT _count FROM (
+    SELECT mr_put_edge(edges.src, edges.dst, 1, edges.context) FROM (
+      SELECT beacon.user_id AS src,
+        beacon.id AS dst,
+        beacon.context AS context
+      FROM beacon
+    ) AS edges);
+  _total := _total + _count;
+
+  -- Edge from Beacon to User
+  SELECT count(*) INTO STRICT _count FROM (
+    SELECT mr_put_edge(edges.src, edges.dst, 1, edges.context) FROM (
+      SELECT beacon.id AS src,
+        beacon.user_id AS dst,
+        beacon.context AS context
+      FROM beacon
+    ) AS edges);
+  _total := _total + _count;
+
+  -- Edge from User to Beacon (votes)
+  SELECT count(*) INTO STRICT _count FROM (
+    SELECT mr_put_edge(edges.src, edges.dst, edges.amount, edges.context) FROM (
+      SELECT vote_beacon.subject AS src,
+        vote_beacon.object AS dst,
+        vote_beacon.amount AS amount,
+        beacon.context AS context
+      FROM vote_beacon JOIN beacon ON beacon.id = vote_beacon.object
+    ) AS edges);
+  _total := _total + _count;
+
+  -- Edge from User to Comment
+  SELECT count(*) INTO STRICT _count FROM (
+    SELECT mr_put_edge(edges.src, edges.dst, 1, edges.context) FROM (
+      SELECT "comment".user_id AS src,
+        "comment".id AS dst,
+        beacon.context AS context
+      FROM "comment" JOIN beacon ON "comment".beacon_id = beacon.id
+    ) AS edges);
+  _total := _total + _count;
+
+  -- Edge from Comment to User
+  SELECT count(*) INTO STRICT _count FROM (
+    SELECT mr_put_edge(edges.src, edges.dst, 1, edges.context) FROM (
+      SELECT "comment".id AS src,
+        "comment".user_id AS dst,
+        beacon.context AS context
+      FROM "comment" JOIN beacon ON "comment".beacon_id = beacon.id
+    ) AS edges);
+  _total := _total + _count;
+
+  -- Edge from User to Comment (votes)
+  SELECT count(*) INTO STRICT _count FROM (
+    SELECT mr_put_edge(edges.src, edges.dst, edges.amount, edges.context) FROM (
+      SELECT vote_comment.subject AS src,
+        vote_comment.object AS dst,
+        vote_comment.amount AS amount,
+        beacon.context AS context
+      FROM vote_comment JOIN "comment" ON "comment".id = vote_comment.object JOIN beacon ON beacon.id = "comment".beacon_id
+    ) AS edges);
+  _total := _total + _count;
+
+  RETURN _total;
+END;
+$$;
 
 
-ALTER FUNCTION public.mr_calculate() OWNER TO postgres;
+ALTER FUNCTION public.meritrank_init() OWNER TO postgres;
 
 --
 -- Name: my_field(text, json); Type: FUNCTION; Schema: public; Owner: postgres
@@ -328,7 +416,7 @@ CREATE FUNCTION public.notify_meritrank_vote_beacon_mutation() RETURNS trigger
 DECLARE
     context text;
 BEGIN
-    SELECT beacon.context INTO context FROM beacon WHERE beacon.id = NEW.object;
+    SELECT beacon.context INTO STRICT context FROM beacon WHERE beacon.id = NEW.object;
     IF (TG_OP = 'INSERT' OR TG_OP = 'UPDATE') THEN
         PERFORM mr_put_edge(NEW.subject, NEW.object, (NEW.amount)::double precision, context);
     ELSIF (TG_OP = 'DELETE') THEN
@@ -401,17 +489,17 @@ CREATE VIEW public.mutual_score AS
 ALTER VIEW public.mutual_score OWNER TO postgres;
 
 --
--- Name: rating(json); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: rating(text, json); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION public.rating(hasura_session json) RETURNS SETOF public.mutual_score
+CREATE FUNCTION public.rating(context text, hasura_session json) RETURNS SETOF public.mutual_score
     LANGUAGE sql IMMUTABLE
     AS $$
-SELECT src, dst, src_score, dst_score FROM mr_mutual_scores(hasura_session->>'x-hasura-user-id', '');
+SELECT src, dst, src_score, dst_score FROM mr_mutual_scores(hasura_session->>'x-hasura-user-id', context);
 $$;
 
 
-ALTER FUNCTION public.rating(hasura_session json) OWNER TO postgres;
+ALTER FUNCTION public.rating(context text, hasura_session json) OWNER TO postgres;
 
 --
 -- Name: set_current_timestamp_updated_at(); Type: FUNCTION; Schema: public; Owner: postgres
@@ -500,6 +588,19 @@ CREATE TABLE public.beacon_pinned (
 ALTER TABLE public.beacon_pinned OWNER TO postgres;
 
 --
+-- Name: user_context; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.user_context (
+    user_id text NOT NULL,
+    context_name text NOT NULL,
+    CONSTRAINT user_context_name_length CHECK (((char_length(context_name) >= 3) AND (char_length(context_name) <= 32)))
+);
+
+
+ALTER TABLE public.user_context OWNER TO postgres;
+
+--
 -- Name: vote_beacon; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -545,72 +646,10 @@ CREATE TABLE public.vote_user (
 ALTER TABLE public.vote_user OWNER TO postgres;
 
 --
--- Name: edges; Type: VIEW; Schema: public; Owner: postgres
---
-
-CREATE VIEW public.edges AS
- SELECT "user".id AS src,
-    'U000000000000'::text AS dst,
-    1 AS amount
-   FROM public."user"
-  WHERE ("user".id <> 'U000000000000'::text)
-UNION
- SELECT beacon.id AS src,
-    beacon.user_id AS dst,
-    1 AS amount
-   FROM public.beacon
-UNION
- SELECT beacon.user_id AS src,
-    beacon.id AS dst,
-    1 AS amount
-   FROM public.beacon
-UNION
- SELECT comment.id AS src,
-    comment.user_id AS dst,
-    1 AS amount
-   FROM public.comment
-UNION
- SELECT comment.user_id AS src,
-    comment.id AS dst,
-    1 AS amount
-   FROM public.comment
-UNION
- SELECT vote_user.subject AS src,
-    vote_user.object AS dst,
-    vote_user.amount
-   FROM public.vote_user
-UNION
- SELECT vote_beacon.subject AS src,
-    vote_beacon.object AS dst,
-    vote_beacon.amount
-   FROM public.vote_beacon
-UNION
- SELECT vote_comment.subject AS src,
-    vote_comment.object AS dst,
-    vote_comment.amount
-   FROM public.vote_comment;
-
-
-ALTER VIEW public.edges OWNER TO postgres;
-
---
--- Name: user_context; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.user_context (
-    user_id text NOT NULL,
-    context_name text NOT NULL,
-    CONSTRAINT user_context_name_length CHECK (((char_length(context_name) >= 3) AND (char_length(context_name) <= 32)))
-);
-
-
-ALTER TABLE public.user_context OWNER TO postgres;
-
---
 -- Data for Name: user; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO public."user" VALUES ('U000000000000', '2023-12-20 23:37:34.043065+00', '2024-07-09 12:54:29.214478+00', 'Tentura', '', false, 'nologin');
+INSERT INTO public."user" VALUES ('U000000000000', '2023-12-20 23:37:34.043065+00', '2024-07-23 22:35:05.950428+00', 'Tentura', 'Kind a black hole', true, 'nologin');
 
 --
 -- Name: beacon_pinned beacon_pinned_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
@@ -916,3 +955,4 @@ ALTER TABLE ONLY public.vote_user
 --
 -- PostgreSQL database dump complete
 --
+

@@ -1,5 +1,5 @@
 {
-  "resource_version": 217,
+  "resource_version": 239,
   "metadata": {
     "version": 3,
     "sources": [
@@ -614,7 +614,11 @@
               {
                 "role": "user",
                 "permission": {
-                  "check": {},
+                  "check": {
+                    "user_id": {
+                      "_eq": "X-Hasura-User-Id"
+                    }
+                  },
                   "set": {
                     "user_id": "x-hasura-User-Id"
                   },
@@ -921,7 +925,7 @@
           },
           {
             "arguments": {},
-            "code": "SELECT true AS is_ok, count(*)::text AS message FROM (SELECT mr_put_edge(edges.src, edges.dst, edges.amount, '') FROM edges)",
+            "code": "SELECT true AS is_ok, meritrank_init()::text AS message",
             "returns": "Result",
             "root_field_name": "mr_init"
           },
@@ -955,7 +959,7 @@
         ],
         "configuration": {
           "connection_info": {
-            "database_url": "postgres://postgres:password@postgres:5432/postgres",
+            "database_url": "postgres://postgres:postgres@postgres:5432/postgres",
             "isolation_level": "read-committed",
             "use_prepared_statements": false
           }

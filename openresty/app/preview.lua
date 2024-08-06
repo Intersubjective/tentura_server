@@ -2,8 +2,7 @@ local ngx = ngx
 local sub = string.sub
 local fmt = string.format
 local gql = require 'app.gql'
-local template = require 'resty.template'
--- local template = require 'resty.template.safe'
+local template = require 'resty.template.safe'
 
 local CT_HTML = 'text/html; charset=utf-8'
 
