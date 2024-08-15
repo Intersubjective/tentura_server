@@ -1,5 +1,5 @@
 {
-  "resource_version": 239,
+  "resource_version": 242,
   "metadata": {
     "version": 3,
     "sources": [
@@ -959,7 +959,7 @@
         ],
         "configuration": {
           "connection_info": {
-            "database_url": "postgres://postgres:postgres@postgres:5432/postgres",
+            "database_url": "postgres://postgres:password@postgres:5432/postgres",
             "isolation_level": "read-committed",
             "use_prepared_statements": false
           }

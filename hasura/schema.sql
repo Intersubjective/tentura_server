@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 16.3
--- Dumped by pg_dump version 16.3
+-- Dumped from database version 16.4
+-- Dumped by pg_dump version 16.4
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -387,6 +387,24 @@ $$;
 ALTER FUNCTION public.notify_meritrank_comment_mutation() OWNER TO postgres;
 
 --
+-- Name: notify_meritrank_context_mutation(); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.notify_meritrank_context_mutation() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF (TG_OP = 'INSERT') THEN
+        PERFORM mr_create_context(NEW.context_name);
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION public.notify_meritrank_context_mutation() OWNER TO postgres;
+
+--
 -- Name: notify_meritrank_user_mutation(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -756,6 +774,13 @@ CREATE TRIGGER notify_meritrank_beacon_mutation AFTER INSERT OR DELETE ON public
 --
 
 CREATE TRIGGER notify_meritrank_comment_mutation AFTER INSERT OR DELETE ON public.comment FOR EACH ROW EXECUTE FUNCTION public.notify_meritrank_comment_mutation();
+
+
+--
+-- Name: user_context notify_meritrank_context_mutation; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER notify_meritrank_context_mutation AFTER INSERT ON public.user_context FOR EACH ROW EXECUTE FUNCTION public.notify_meritrank_context_mutation();
 
 
 --
