@@ -11,6 +11,7 @@ services:
     volumes:
       - /tmp
       - ./images:/srv/images
+      - ./web:/usr/local/openresty/nginx/html:ro
       - openresty-cert:/etc/nginx/cert
     tmpfs:
       - /var/run/openresty
@@ -23,6 +24,7 @@ services:
     environment:
       - JWT_PUBLIC_PEM
       - JWT_PRIVATE_PEM
+      - HASURA_KEEPALIVE
       - HASURA_GRAPHQL_ADMIN_SECRET
       - 'HASURA_URL=http://hasura:8080/v1/graphql'
     secrets:

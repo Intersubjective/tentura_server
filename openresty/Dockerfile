@@ -28,6 +28,6 @@ RUN apk add --no-cache libsodium libsodium-dev
 
 ADD ./app  /usr/local/openresty/site/lualib/app
 
-ADD ./static  /usr/local/openresty/nginx/html
+ADD ./static  /srv/static
 
 ADD ./conf  /etc/nginx
