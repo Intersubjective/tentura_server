@@ -308,6 +308,12 @@ BEGIN
     ) AS edges);
   _total := _total + _count;
 
+  -- Read Updates Filters
+  SELECT count(*) INTO STRICT _count FROM (
+    SELECT mr_set_new_edges_filter(user_id, filter) FROM user_updates
+  );
+  _total := _total + _count;
+
   RETURN _total;
 END;
 $$;
@@ -547,6 +553,27 @@ $$;
 ALTER FUNCTION public.set_current_timestamp_updated_at() OWNER TO postgres;
 
 --
+-- Name: updates(text, json); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.updates(prefix text, hasura_session json) RETURNS SETOF public.edge
+    LANGUAGE sql
+    AS $$
+WITH new_edges AS (
+  SELECT * FROM mr_fetch_new_edges(hasura_session->>'x-hasura-user-id', prefix)
+), new_filter AS (
+  INSERT INTO user_updates VALUES(
+    hasura_session->>'x-hasura-user-id',
+    mr_get_new_edges_filter(hasura_session->>'x-hasura-user-id')
+  ) ON CONFLICT DO NOTHING
+)
+  SELECT * FROM new_edges;
+$$;
+
+
+ALTER FUNCTION public.updates(prefix text, hasura_session json) OWNER TO postgres;
+
+--
 -- Name: user; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -617,6 +644,18 @@ CREATE TABLE public.user_context (
 
 
 ALTER TABLE public.user_context OWNER TO postgres;
+
+--
+-- Name: user_updates; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.user_updates (
+    user_id text NOT NULL,
+    filter bytea NOT NULL
+);
+
+
+ALTER TABLE public.user_updates OWNER TO postgres;
 
 --
 -- Name: vote_beacon; Type: TABLE; Schema: public; Owner: postgres
@@ -715,6 +754,14 @@ ALTER TABLE ONLY public."user"
 
 ALTER TABLE ONLY public."user"
     ADD CONSTRAINT user_public_key_key UNIQUE (public_key);
+
+
+--
+-- Name: user_updates user_updates_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.user_updates
+    ADD CONSTRAINT user_updates_pkey PRIMARY KEY (user_id);
 
 
 --
@@ -927,6 +974,14 @@ ALTER TABLE ONLY public.comment
 
 ALTER TABLE ONLY public.user_context
     ADD CONSTRAINT user_context_user_id_fkey FOREIGN KEY (user_id) REFERENCES public."user"(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
+
+--
+-- Name: user_updates user_updates_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.user_updates
+    ADD CONSTRAINT user_updates_user_id_fkey FOREIGN KEY (user_id) REFERENCES public."user"(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
 
 --

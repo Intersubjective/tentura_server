@@ -1,5 +1,5 @@
 {
-  "resource_version": 242,
+  "resource_version": 265,
   "metadata": {
     "version": 3,
     "sources": [
@@ -623,7 +623,8 @@
                     "user_id": "x-hasura-User-Id"
                   },
                   "columns": [
-                    "context_name"
+                    "context_name",
+                    "user_id"
                   ]
                 },
                 "comment": ""
@@ -903,6 +904,21 @@
           {
             "function": {
               "name": "rating",
+              "schema": "public"
+            },
+            "configuration": {
+              "custom_root_fields": {},
+              "session_argument": "hasura_session"
+            },
+            "permissions": [
+              {
+                "role": "user"
+              }
+            ]
+          },
+          {
+            "function": {
+              "name": "updates",
               "schema": "public"
             },
             "configuration": {
