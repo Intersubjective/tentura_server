@@ -1,5 +1,5 @@
 {
-  "resource_version": 265,
+  "resource_version": 272,
   "metadata": {
     "version": 3,
     "sources": [
@@ -283,6 +283,17 @@
                   "session_argument": "hasura_session",
                   "table_argument": "comment_row"
                 }
+              },
+              {
+                "name": "score",
+                "definition": {
+                  "function": {
+                    "name": "comment_get_score",
+                    "schema": "public"
+                  },
+                  "session_argument": "hasura_session",
+                  "table_argument": "comment_row"
+                }
               }
             ],
             "insert_permissions": [
@@ -312,7 +323,8 @@
                     "id"
                   ],
                   "computed_fields": [
-                    "my_vote"
+                    "my_vote",
+                    "score"
                   ],
                   "filter": {}
                 }
