@@ -143,6 +143,20 @@ $$;
 ALTER FUNCTION public.comment_get_my_vote(comment_row public.comment, hasura_session json) OWNER TO postgres;
 
 --
+-- Name: comment_get_score(public.comment, json); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.comment_get_score(comment_row public.comment, hasura_session json) RETURNS double precision
+    LANGUAGE sql IMMUTABLE
+    AS $$
+WITH beacon_row AS (SELECT context FROM beacon WHERE beacon.id = comment_row.beacon_id)
+  SELECT score FROM mr_node_score(hasura_session ->> 'x-hasura-user-id', comment_row.id, (SELECT context FROM beacon_row));
+$$;
+
+
+ALTER FUNCTION public.comment_get_score(comment_row public.comment, hasura_session json) OWNER TO postgres;
+
+--
 -- Name: decrement_beacon_comments_count(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -708,6 +722,7 @@ ALTER TABLE public.vote_user OWNER TO postgres;
 
 INSERT INTO public."user" VALUES ('U000000000000', '2023-12-20 23:37:34.043065+00', '2024-07-23 22:35:05.950428+00', 'Tentura', 'Kind a black hole', true, 'nologin');
 
+
 --
 -- Name: beacon_pinned beacon_pinned_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
@@ -1035,4 +1050,3 @@ ALTER TABLE ONLY public.vote_user
 --
 -- PostgreSQL database dump complete
 --
-
