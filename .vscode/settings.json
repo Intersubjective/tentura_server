@@ -6,5 +6,8 @@
     "Lua.workspace.library": [
         "${3rd}/lfs/library",
         "${3rd}/OpenResty/library"
+    ],
+    "Lua.diagnostics.disable": [
+        "return-type-mismatch"
     ]
 }

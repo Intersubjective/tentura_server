@@ -1,5 +1,5 @@
 {
-  "resource_version": 257,
+  "resource_version": 272,
   "metadata": {
     "version": 3,
     "sources": [
@@ -21,18 +21,6 @@
               }
             ],
             "array_relationships": [
-              {
-                "name": "beacon_hiddens",
-                "using": {
-                  "foreign_key_constraint_on": {
-                    "column": "beacon_id",
-                    "table": {
-                      "name": "beacon_hidden",
-                      "schema": "public"
-                    }
-                  }
-                }
-              },
               {
                 "name": "beacon_pinneds",
                 "using": {
@@ -72,17 +60,6 @@
             ],
             "computed_fields": [
               {
-                "name": "is_hidden",
-                "definition": {
-                  "function": {
-                    "name": "beacon_get_is_hidden",
-                    "schema": "public"
-                  },
-                  "session_argument": "hasura_session",
-                  "table_argument": "beacon_row"
-                }
-              },
-              {
                 "name": "is_pinned",
                 "definition": {
                   "function": {
@@ -103,46 +80,39 @@
                   "session_argument": "hasura_session",
                   "table_argument": "beacon_row"
                 }
-              }
-            ],
-            "remote_relationships": [
+              },
               {
+                "name": "score",
                 "definition": {
-                  "hasura_fields": [
-                    "id"
-                  ],
-                  "remote_field": {
-                    "scores": {
-                      "arguments": {
-                        "ego": "$id"
-                      }
-                    }
+                  "function": {
+                    "name": "beacon_get_score",
+                    "schema": "public"
                   },
-                  "remote_schema": "meritrank"
+                  "session_argument": "hasura_session",
+                  "table_argument": "beacon_row"
                 },
-                "name": "beacon_in_my_field"
+                "comment": ""
               }
             ],
             "insert_permissions": [
               {
                 "role": "user",
                 "permission": {
-                  "check": {
-                    "user_id": {
-                      "_eq": "X-Hasura-User-Id"
-                    }
-                  },
+                  "check": {},
                   "set": {
                     "user_id": "x-hasura-User-Id"
                   },
                   "columns": [
+                    "context",
                     "description",
                     "has_picture",
-                    "place",
+                    "lat",
+                    "long",
                     "timerange",
                     "title"
                   ]
-                }
+                },
+                "comment": ""
               }
             ],
             "select_permissions": [
@@ -150,25 +120,28 @@
                 "role": "user",
                 "permission": {
                   "columns": [
-                    "id",
+                    "comments_count",
+                    "context",
                     "created_at",
-                    "updated_at",
-                    "user_id",
-                    "title",
                     "description",
-                    "timerange",
-                    "place",
                     "enabled",
                     "has_picture",
-                    "comments_count"
+                    "id",
+                    "lat",
+                    "long",
+                    "timerange",
+                    "title",
+                    "updated_at",
+                    "user_id"
                   ],
                   "computed_fields": [
-                    "is_hidden",
                     "is_pinned",
-                    "my_vote"
+                    "my_vote",
+                    "score"
                   ],
                   "filter": {}
-                }
+                },
+                "comment": ""
               }
             ],
             "update_permissions": [
@@ -185,94 +158,6 @@
                   },
                   "check": null
                 }
-              }
-            ],
-            "delete_permissions": [
-              {
-                "role": "user",
-                "permission": {
-                  "filter": {
-                    "user_id": {
-                      "_eq": "X-Hasura-User-Id"
-                    }
-                  }
-                },
-                "comment": ""
-              }
-            ]
-          },
-          {
-            "table": {
-              "name": "beacon_hidden",
-              "schema": "public"
-            },
-            "object_relationships": [
-              {
-                "name": "beacon",
-                "using": {
-                  "foreign_key_constraint_on": "beacon_id"
-                }
-              },
-              {
-                "name": "user",
-                "using": {
-                  "foreign_key_constraint_on": "user_id"
-                }
-              }
-            ],
-            "insert_permissions": [
-              {
-                "role": "user",
-                "permission": {
-                  "check": {
-                    "user_id": {
-                      "_eq": "X-Hasura-User-Id"
-                    }
-                  },
-                  "set": {
-                    "user_id": "x-hasura-User-Id"
-                  },
-                  "columns": [
-                    "beacon_id",
-                    "hidden_until"
-                  ]
-                },
-                "comment": ""
-              }
-            ],
-            "select_permissions": [
-              {
-                "role": "user",
-                "permission": {
-                  "columns": [
-                    "beacon_id",
-                    "user_id",
-                    "hidden_until"
-                  ],
-                  "filter": {
-                    "user_id": {
-                      "_eq": "X-Hasura-User-Id"
-                    }
-                  }
-                },
-                "comment": ""
-              }
-            ],
-            "update_permissions": [
-              {
-                "role": "user",
-                "permission": {
-                  "columns": [
-                    "hidden_until"
-                  ],
-                  "filter": {
-                    "user_id": {
-                      "_eq": "X-Hasura-User-Id"
-                    }
-                  },
-                  "check": null
-                },
-                "comment": ""
               }
             ],
             "delete_permissions": [
@@ -398,6 +283,17 @@
                   "session_argument": "hasura_session",
                   "table_argument": "comment_row"
                 }
+              },
+              {
+                "name": "score",
+                "definition": {
+                  "function": {
+                    "name": "comment_get_score",
+                    "schema": "public"
+                  },
+                  "session_argument": "hasura_session",
+                  "table_argument": "comment_row"
+                }
               }
             ],
             "insert_permissions": [
@@ -427,7 +323,8 @@
                     "id"
                   ],
                   "computed_fields": [
-                    "my_vote"
+                    "my_vote",
+                    "score"
                   ],
                   "filter": {}
                 }
@@ -448,22 +345,115 @@
           },
           {
             "table": {
-              "name": "user",
+              "name": "edge",
               "schema": "public"
             },
-            "array_relationships": [
+            "object_relationships": [
               {
-                "name": "beacon_hiddens",
+                "name": "beacon",
                 "using": {
-                  "foreign_key_constraint_on": {
-                    "column": "user_id",
-                    "table": {
-                      "name": "beacon_hidden",
+                  "manual_configuration": {
+                    "column_mapping": {
+                      "dst": "id"
+                    },
+                    "insertion_order": null,
+                    "remote_table": {
+                      "name": "beacon",
                       "schema": "public"
                     }
                   }
                 }
               },
+              {
+                "name": "comment",
+                "using": {
+                  "manual_configuration": {
+                    "column_mapping": {
+                      "dst": "id"
+                    },
+                    "insertion_order": null,
+                    "remote_table": {
+                      "name": "comment",
+                      "schema": "public"
+                    }
+                  }
+                }
+              },
+              {
+                "name": "user",
+                "using": {
+                  "manual_configuration": {
+                    "column_mapping": {
+                      "dst": "id"
+                    },
+                    "insertion_order": null,
+                    "remote_table": {
+                      "name": "user",
+                      "schema": "public"
+                    }
+                  }
+                }
+              }
+            ],
+            "select_permissions": [
+              {
+                "role": "user",
+                "permission": {
+                  "columns": [
+                    "score",
+                    "dst",
+                    "src"
+                  ],
+                  "filter": {}
+                },
+                "comment": ""
+              }
+            ]
+          },
+          {
+            "table": {
+              "name": "mutual_score",
+              "schema": "public"
+            },
+            "object_relationships": [
+              {
+                "name": "user",
+                "using": {
+                  "manual_configuration": {
+                    "column_mapping": {
+                      "dst": "id"
+                    },
+                    "insertion_order": null,
+                    "remote_table": {
+                      "name": "user",
+                      "schema": "public"
+                    }
+                  }
+                }
+              }
+            ],
+            "select_permissions": [
+              {
+                "role": "user",
+                "permission": {
+                  "columns": [
+                    "dst_score",
+                    "src_score",
+                    "dst",
+                    "src"
+                  ],
+                  "filter": {}
+                },
+                "comment": ""
+              }
+            ]
+          },
+          {
+            "table": {
+              "name": "user",
+              "schema": "public"
+            },
+            "array_relationships": [
               {
                 "name": "beacon_pinneds",
                 "using": {
@@ -560,6 +550,18 @@
                   "session_argument": "hasura_session",
                   "table_argument": "user_row"
                 }
+              },
+              {
+                "name": "score",
+                "definition": {
+                  "function": {
+                    "name": "user_get_score",
+                    "schema": "public"
+                  },
+                  "session_argument": "hasura_session",
+                  "table_argument": "user_row"
+                },
+                "comment": ""
               }
             ],
             "select_permissions": [
@@ -576,7 +578,8 @@
                     "updated_at"
                   ],
                   "computed_fields": [
-                    "my_vote"
+                    "my_vote",
+                    "score"
                   ],
                   "filter": {},
                   "limit": 10
@@ -611,6 +614,62 @@
                     }
                   }
                 }
+              }
+            ]
+          },
+          {
+            "table": {
+              "name": "user_context",
+              "schema": "public"
+            },
+            "insert_permissions": [
+              {
+                "role": "user",
+                "permission": {
+                  "check": {
+                    "user_id": {
+                      "_eq": "X-Hasura-User-Id"
+                    }
+                  },
+                  "set": {
+                    "user_id": "x-hasura-User-Id"
+                  },
+                  "columns": [
+                    "context_name",
+                    "user_id"
+                  ]
+                },
+                "comment": ""
+              }
+            ],
+            "select_permissions": [
+              {
+                "role": "user",
+                "permission": {
+                  "columns": [
+                    "context_name",
+                    "user_id"
+                  ],
+                  "filter": {
+                    "user_id": {
+                      "_eq": "X-Hasura-User-Id"
+                    }
+                  }
+                },
+                "comment": ""
+              }
+            ],
+            "delete_permissions": [
+              {
+                "role": "user",
+                "permission": {
+                  "filter": {
+                    "user_id": {
+                      "_eq": "X-Hasura-User-Id"
+                    }
+                  }
+                },
+                "comment": ""
               }
             ]
           },
@@ -823,6 +882,109 @@
             ]
           }
         ],
+        "functions": [
+          {
+            "function": {
+              "name": "graph",
+              "schema": "public"
+            },
+            "configuration": {
+              "custom_root_fields": {},
+              "session_argument": "hasura_session"
+            },
+            "permissions": [
+              {
+                "role": "user"
+              }
+            ]
+          },
+          {
+            "function": {
+              "name": "my_field",
+              "schema": "public"
+            },
+            "configuration": {
+              "custom_root_fields": {},
+              "session_argument": "hasura_session"
+            },
+            "permissions": [
+              {
+                "role": "user"
+              }
+            ]
+          },
+          {
+            "function": {
+              "name": "rating",
+              "schema": "public"
+            },
+            "configuration": {
+              "custom_root_fields": {},
+              "session_argument": "hasura_session"
+            },
+            "permissions": [
+              {
+                "role": "user"
+              }
+            ]
+          },
+          {
+            "function": {
+              "name": "updates",
+              "schema": "public"
+            },
+            "configuration": {
+              "custom_root_fields": {},
+              "session_argument": "hasura_session"
+            },
+            "permissions": [
+              {
+                "role": "user"
+              }
+            ]
+          }
+        ],
+        "native_queries": [
+          {
+            "arguments": {},
+            "code": "SELECT true as is_ok, mr_zerorec(true)::text as message;",
+            "returns": "Result",
+            "root_field_name": "mr_calculate"
+          },
+          {
+            "arguments": {},
+            "code": "SELECT true AS is_ok, meritrank_init()::text AS message",
+            "returns": "Result",
+            "root_field_name": "mr_init"
+          },
+          {
+            "arguments": {},
+            "code": "SELECT true as is_ok, mr_reset()::text as message;",
+            "returns": "Result",
+            "root_field_name": "mr_reset"
+          }
+        ],
+        "logical_models": [
+          {
+            "fields": [
+              {
+                "name": "is_ok",
+                "type": {
+                  "nullable": false,
+                  "scalar": "boolean"
+                }
+              },
+              {
+                "name": "message",
+                "type": {
+                  "nullable": false,
+                  "scalar": "text"
+                }
+              }
+            ],
+            "name": "Result"
+          }
+        ],
         "configuration": {
           "connection_info": {
             "database_url": "postgres://postgres:password@postgres:5432/postgres",
@@ -831,291 +993,6 @@
           }
         }
       }
-    ],
-    "remote_schemas": [
-      {
-        "name": "meritrank",
-        "definition": {
-          "url": "http://meritrank:8000/graphql",
-          "timeout_seconds": 60,
-          "customization": {}
-        },
-        "comment": "",
-        "permissions": [
-          {
-            "role": "user",
-            "definition": {
-              "schema": "schema  { query: Query }\n\ntype Edge { dest: String!\n  src: String!\n  weight: Float!\n}\n\ntype GravityGraph { beacons: [NodeScore]!\n  comments: [NodeScore]!\n  edges: [Edge]!\n  users: [NodeScore]!\n}\n\ntype MutualScore { ego: String!\n  egoScore: Float!\n  node: String!\n  nodeScore: Float!\n}\n\ntype NodeScore { ego: String!\n  node: String!\n  score: Float!\n}\n\ntype Query { edge(src: String!, dest: String!): Edge\n  edges(src: String!): [Edge!]!\n  gravityGraph(ego: String! @preset(value: \"x-hasura-user-id\"), focus: String, positiveOnly: Boolean, limit: Int): GravityGraph!\n  score(ego: String!, node: String!): NodeScore\n  scores(ego: String! @preset(value: \"x-hasura-user-id\"), where: NodeScoreWhereInput, limit: Int, hidePersonal: Boolean): [NodeScore!]!\n  usersStats(ego: String! @preset(value: \"x-hasura-user-id\")): [MutualScore!]!\n}\n\ninput NodeInput {like: String\n}\n\ninput NodeScoreWhereInput {node: NodeInput\n  score: ScoreInput\n}\n\ninput ScoreInput {gt: Float\n  gte: Float\n  lt: Float\n  lte: Float\n}"
-            }
-          }
-        ],
-        "remote_relationships": [
-          {
-            "relationships": [
-              {
-                "definition": {
-                  "to_source": {
-                    "field_mapping": {
-                      "node": "id"
-                    },
-                    "relationship_type": "object",
-                    "source": "postgres",
-                    "table": {
-                      "name": "user",
-                      "schema": "public"
-                    }
-                  }
-                },
-                "name": "user"
-              },
-              {
-                "definition": {
-                  "to_source": {
-                    "field_mapping": {
-                      "node": "id"
-                    },
-                    "relationship_type": "object",
-                    "source": "postgres",
-                    "table": {
-                      "name": "beacon",
-                      "schema": "public"
-                    }
-                  }
-                },
-                "name": "beacon"
-              },
-              {
-                "definition": {
-                  "to_source": {
-                    "field_mapping": {
-                      "node": "id"
-                    },
-                    "relationship_type": "object",
-                    "source": "postgres",
-                    "table": {
-                      "name": "comment",
-                      "schema": "public"
-                    }
-                  }
-                },
-                "name": "comment"
-              }
-            ],
-            "type_name": "NodeScore"
-          },
-          {
-            "relationships": [
-              {
-                "definition": {
-                  "to_source": {
-                    "field_mapping": {
-                      "node": "id"
-                    },
-                    "relationship_type": "object",
-                    "source": "postgres",
-                    "table": {
-                      "name": "user",
-                      "schema": "public"
-                    }
-                  }
-                },
-                "name": "user"
-              }
-            ],
-            "type_name": "MutualScore"
-          }
-        ]
-      }
-    ],
-    "actions": [
-      {
-        "name": "getPlaceName",
-        "definition": {
-          "handler": "https://nominatim.openstreetmap.org/reverse",
-          "output_type": "ReverseGeocodingOutput",
-          "arguments": [
-            {
-              "name": "lat",
-              "type": "Float!"
-            },
-            {
-              "name": "long",
-              "type": "Float!"
-            }
-          ],
-          "request_transform": {
-            "body": {
-              "action": "remove"
-            },
-            "method": "GET",
-            "query_params": {
-              "accept-language": "en",
-              "format": "geojson",
-              "lat": "{{$body.input.lat}}",
-              "lon": "{{$body.input.long}}",
-              "zoom": "15"
-            },
-            "request_headers": {
-              "add_headers": {},
-              "remove_headers": [
-                "content-type"
-              ]
-            },
-            "template_engine": "Kriti",
-            "version": 2
-          },
-          "type": "query"
-        }
-      }
-    ],
-    "custom_types": {
-      "objects": [
-        {
-          "name": "Address",
-          "fields": [
-            {
-              "name": "city",
-              "type": "String"
-            },
-            {
-              "name": "city_district",
-              "type": "String"
-            },
-            {
-              "name": "commercial",
-              "type": "String"
-            },
-            {
-              "name": "country",
-              "type": "String"
-            },
-            {
-              "name": "country_code",
-              "type": "String"
-            },
-            {
-              "name": "ISO31662lvl15",
-              "type": "String"
-            },
-            {
-              "name": "ISO31662lvl4",
-              "type": "String"
-            },
-            {
-              "name": "region",
-              "type": "String"
-            },
-            {
-              "name": "state",
-              "type": "String"
-            },
-            {
-              "name": "suburb",
-              "type": "String"
-            }
-          ]
-        },
-        {
-          "name": "Features",
-          "fields": [
-            {
-              "name": "bbox",
-              "type": "[Float]"
-            },
-            {
-              "name": "geometry",
-              "type": "Geometry"
-            },
-            {
-              "name": "properties",
-              "type": "Properties"
-            },
-            {
-              "name": "type",
-              "type": "String"
-            }
-          ]
-        },
-        {
-          "name": "Geometry",
-          "fields": [
-            {
-              "name": "coordinates",
-              "type": "[Float]"
-            },
-            {
-              "name": "type",
-              "type": "String"
-            }
-          ]
-        },
-        {
-          "name": "Properties",
-          "fields": [
-            {
-              "name": "address",
-              "type": "Address"
-            },
-            {
-              "name": "addresstype",
-              "type": "String"
-            },
-            {
-              "name": "category",
-              "type": "String"
-            },
-            {
-              "name": "display_name",
-              "type": "String"
-            },
-            {
-              "name": "importance",
-              "type": "Float"
-            },
-            {
-              "name": "name",
-              "type": "String"
-            },
-            {
-              "name": "osm_id",
-              "type": "Int"
-            },
-            {
-              "name": "osm_type",
-              "type": "String"
-            },
-            {
-              "name": "place_id",
-              "type": "Int"
-            },
-            {
-              "name": "place_rank",
-              "type": "Int"
-            },
-            {
-              "name": "type",
-              "type": "String"
-            }
-          ]
-        },
-        {
-          "name": "ReverseGeocodingOutput",
-          "fields": [
-            {
-              "name": "features",
-              "type": "[Features]"
-            },
-            {
-              "name": "licence",
-              "type": "String"
-            },
-            {
-              "name": "type",
-              "type": "String"
-            }
-          ]
-        }
-      ]
-    }
+    ]
   }
 }
