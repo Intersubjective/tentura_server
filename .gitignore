@@ -2,5 +2,4 @@
 *.pem
 tmp/*
 data/*
-images/*
 compose.override.yaml
