@@ -51,6 +51,7 @@ services:
       - 'HASURA_GRAPHQL_INFER_FUNCTION_PERMISSIONS=false'
       - 'HASURA_GRAPHQL_DATABASE_URL=postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/postgres'
       - 'HASURA_GRAPHQL_JWT_SECRET={"type":"Ed25519", "key":"${JWT_PUBLIC_PEM}", "claims_map": {"x-hasura-allowed-roles": ["user", "admin"], "x-hasura-default-role": "user", "x-hasura-user-id": {"path": "$$.sub"}}}'
+      - 'HASURA_GRAPHQL_EXPERIMENTAL_FEATURES=streaming_subscriptions,remove_empty_subscription_responses'
     secrets:
       - jwt_public_pem
       - hasura_graphql_admin_secret

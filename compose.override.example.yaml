@@ -32,6 +32,7 @@ services:
       - "HASURA_GRAPHQL_LOG_LEVEL=debug"
       - "HASURA_GRAPHQL_ENABLE_CONSOLE=true"
       - "HASURA_GRAPHQL_ENABLE_METADATA_QUERY_LOGGING=true"
+      - "HASURA_GRAPHQL_CORS_DOMAIN=https://tentura.intersubjective.space, http://localhost:8888"
 
   postgres:
     restart: no
