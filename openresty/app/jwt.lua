@@ -13,7 +13,7 @@ local match = string.match
 local from_b64 = ngx.decode_base64
 local get_headers = ngx.req.get_headers
 
-local to_json = require 'cjson'.encode
+local to_json = require 'cjson.safe'.encode
 local from_json = require 'cjson.safe'.decode
 local to_b64url = require 'ngx.base64'.encode_base64url
 local from_b64url = require 'ngx.base64'.decode_base64url
@@ -33,10 +33,8 @@ local function parse_jwt(token)
     local jwt, err = from_json(from_b64url(sub(message, JWT_BODY_START_AT)) or '')
     if err then
         return nil, err
-
     elseif type(jwt) ~= 'table' then
         return nil, 'Wrong JWT!'
-
     elseif (jwt.exp or 0) < time() then
         return nil, 'JWT expired'
     else
@@ -80,9 +78,9 @@ local function sign_jwt(subject)
         sub = subject,
         iat = now,
         exp = now + JWT_EXPIRES_IN
-    })
+    } or '')
     local message = JWT_HEADER .. jwt_body
-    return to_json{
+    return to_json {
         subject = subject,
         token_type = 'bearer',
         access_token = message .. '.' .. to_b64url(sign(message, SK)),
@@ -91,27 +89,10 @@ local function sign_jwt(subject)
 end
 
 
-local function check_access()
-    local method = ngx.req.get_method()
-    if method == 'GET' then
-        return ngx.exit(ngx.OK)
-    elseif method == 'PUT' or method == 'DELETE' then
-        local token, err = verify_jwt()
-        if not token then
-            ngx.var.xlog = err
-            return ngx.exit(ngx.HTTP_UNAUTHORIZED)
-        end
-        if token.sub == ngx.var[1] then
-            return ngx.exit(ngx.OK)
-        end
-    end
-    return ngx.exit(ngx.HTTP_FORBIDDEN)
-end
-
-
 ---@param pk string
 ---@param sk string
 ---@param exp string
+---@return nil
 local function init(pk, sk, exp)
     local expire = tonumber(exp)
     if expire then
@@ -131,5 +112,4 @@ return {
     init = init,
     sign_jwt = sign_jwt,
     verify_jwt = verify_jwt,
-    check_access = check_access,
 }

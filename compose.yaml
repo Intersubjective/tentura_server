@@ -1,0 +1,111 @@
+name: tentura
+
+services:
+  openresty:
+    hostname: openresty
+    container_name: openresty
+    image: vbulavintsev/openresty-tentura
+    restart: unless-stopped
+    depends_on:
+       - hasura
+    volumes:
+      - /tmp
+      - ./images:/srv/images
+      - ./web:/usr/local/openresty/nginx/html:ro
+      - openresty-cert:/etc/nginx/cert
+    tmpfs:
+      - /var/run/openresty
+    ports:
+      - 80:80/tcp
+      - 443:443/tcp
+    networks:
+      - proxy
+      - backend
+    environment:
+      - JWT_PUBLIC_PEM
+      - JWT_PRIVATE_PEM
+      - HASURA_KEEPALIVE
+      - HASURA_GRAPHQL_ADMIN_SECRET
+      - 'HASURA_URL=http://hasura:8080/v1/graphql'
+    secrets:
+      - jwt_public_pem
+      - jwt_private_pem
+      - hasura_graphql_admin_secret
+    logging:
+      driver: journald
+
+  hasura:
+    hostname: hasura
+    container_name: hasura
+    image: hasura/graphql-engine
+    restart: unless-stopped
+    init: true
+    depends_on:
+      - postgres
+    networks:
+      - backend
+    environment:
+      - HASURA_GRAPHQL_ADMIN_SECRET
+      - 'HASURA_GRAPHQL_ENABLE_TELEMETRY=false'
+      - 'HASURA_GRAPHQL_STRINGIFY_NUMERIC_TYPES=true'
+      - 'HASURA_GRAPHQL_INFER_FUNCTION_PERMISSIONS=false'
+      - 'HASURA_GRAPHQL_DATABASE_URL=postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/postgres'
+      - 'HASURA_GRAPHQL_JWT_SECRET={"type":"Ed25519", "key":"${JWT_PUBLIC_PEM}", "claims_map": {"x-hasura-allowed-roles": ["user", "admin"], "x-hasura-default-role": "user", "x-hasura-user-id": {"path": "$$.sub"}}}'
+      - 'HASURA_GRAPHQL_EXPERIMENTAL_FEATURES=streaming_subscriptions,remove_empty_subscription_responses'
+    secrets:
+      - jwt_public_pem
+      - hasura_graphql_admin_secret
+    logging:
+      driver: journald
+
+  postgres:
+    hostname: postgres
+    container_name: postgres
+    image: vbulavintsev/postgres-tentura
+    restart: unless-stopped
+    depends_on:
+      - meritrank-service
+    volumes:
+      - ./pg_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    environment:
+      - POSTGRES_PASSWORD
+      - 'MERITRANK_SERVICE_URL=tcp://meritrank-service:10234'
+    secrets:
+      - postgres_password
+    logging:
+      driver: journald
+
+  meritrank-service:
+    hostname: meritrank-service
+    container_name: meritrank-service
+    image: vbulavintsev/meritrank-service
+    restart: unless-stopped
+    read_only: true
+    init: true
+    networks:
+      - backend
+    environment:
+      - 'MERITRANK_SERVICE_URL=tcp://0.0.0.0:10234'
+    logging:
+      driver: journald
+
+volumes:
+  openresty-cert:
+
+networks:
+  proxy:
+  backend:
+    internal: true
+
+secrets:
+  jwt_public_pem:
+    environment: 'JWT_PUBLIC_PEM'
+  jwt_private_pem:
+    environment: 'JWT_PRIVATE_PEM'
+  postgres_password:
+    environment: 'POSTGRES_PASSWORD'
+  hasura_graphql_admin_secret:
+    environment: 'HASURA_GRAPHQL_ADMIN_SECRET'
+  

@@ -1,5 +1,5 @@
 .env
 *.pem
+tmp/*
 data/*
-images/*
-docker-compose.override.yml
+compose.override.yaml

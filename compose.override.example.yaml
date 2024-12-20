@@ -1,0 +1,45 @@
+services:
+  openresty:
+    restart: no
+    build: ./openresty
+    volumes:
+      - ./openresty/static:/srv/static:ro
+      - ./openresty/conf/app.conf:/etc/nginx/app.conf:ro
+      - ./openresty/conf/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./openresty/app:/usr/local/openresty/site/lualib/app:ro
+      - ../tentura/build/web:/usr/local/openresty/nginx/html:ro
+      - ./openresty/test:/usr/local/openresty/site/lualib/test:ro
+    environment:
+      - RESOLVER
+      - ACME_EMAIL
+      - JWT_EXPIRES_IN
+      - CERT_CACHE_SIZE
+      - HASURA_KEEPALIVE
+      - WORKER_CONNECTIONS
+      - LUA_SOCKET_POOL_SIZE
+      - CLIENT_MAX_BODY_SIZE
+      - CLIENT_BODY_BUFFER_SIZE
+      - "WORKERS=2"
+      - "LUA_CODE_CACHE=off"
+      - "TEST_LOCATION=test"
+      - "ERROR_LOG_LEVEL=debug"
+
+  hasura:
+    restart: no
+    image: hasura/graphql-engine
+    environment:
+      - "HASURA_GRAPHQL_DEV_MODE=true"
+      - "HASURA_GRAPHQL_LOG_LEVEL=debug"
+      - "HASURA_GRAPHQL_ENABLE_CONSOLE=true"
+      - "HASURA_GRAPHQL_ENABLE_METADATA_QUERY_LOGGING=true"
+      - "HASURA_GRAPHQL_CORS_DOMAIN=https://tentura.intersubjective.space, http://localhost:8888"
+
+  postgres:
+    restart: no
+
+  meritrank-service:
+    restart: no
+    environment:
+      - MERITRANK_NUM_WALK
+      - MERITRANK_TOP_NODES_LIMIT
+      - MERITRANK_SERVICE_THREADS
