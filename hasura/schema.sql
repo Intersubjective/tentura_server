@@ -90,27 +90,47 @@ ALTER FUNCTION public.beacon_get_is_pinned(beacon_row public.beacon, hasura_sess
 CREATE FUNCTION public.beacon_get_my_vote(beacon_row public.beacon, hasura_session json) RETURNS integer
     LANGUAGE sql IMMUTABLE
     AS $$
-  SELECT COALESCE(
-    (SELECT amount FROM vote_beacon WHERE subject = (hasura_session ->> 'x-hasura-user-id')::TEXT AND object = beacon_row.id),
-    0
-  );
+SELECT COALESCE((SELECT amount FROM vote_beacon WHERE subject = (hasura_session ->> 'x-hasura-user-id')::TEXT AND object = beacon_row.id), 0);
 $$;
 
 
 ALTER FUNCTION public.beacon_get_my_vote(beacon_row public.beacon, hasura_session json) OWNER TO postgres;
 
 --
--- Name: beacon_get_score(public.beacon, json); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: mutual_score; Type: VIEW; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION public.beacon_get_score(beacon_row public.beacon, hasura_session json) RETURNS double precision
+CREATE VIEW public.mutual_score AS
+ SELECT ''::text AS src,
+    ''::text AS dst,
+    (0)::double precision AS src_score,
+    (0)::double precision AS dst_score
+  WHERE false;
+
+
+ALTER VIEW public.mutual_score OWNER TO postgres;
+
+--
+-- Name: beacon_get_scores(public.beacon, json); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.beacon_get_scores(beacon_row public.beacon, hasura_session json) RETURNS SETOF public.mutual_score
     LANGUAGE sql IMMUTABLE
     AS $$
-SELECT score FROM mr_node_score(hasura_session ->> 'x-hasura-user-id', beacon_row.id, beacon_row.context);
+SELECT
+  src,
+  dst,
+  score_of_src AS src_score,
+  score_of_dst AS dst_score
+FROM mr_node_score(
+  hasura_session ->> 'x-hasura-user-id',
+  beacon_row.id,
+  COALESCE(hasura_session ->> 'x-hasura-query-context', beacon_row.context)
+);
 $$;
 
 
-ALTER FUNCTION public.beacon_get_score(beacon_row public.beacon, hasura_session json) OWNER TO postgres;
+ALTER FUNCTION public.beacon_get_scores(beacon_row public.beacon, hasura_session json) OWNER TO postgres;
 
 --
 -- Name: comment; Type: TABLE; Schema: public; Owner: postgres
@@ -143,18 +163,29 @@ $$;
 ALTER FUNCTION public.comment_get_my_vote(comment_row public.comment, hasura_session json) OWNER TO postgres;
 
 --
--- Name: comment_get_score(public.comment, json); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: comment_get_scores(public.comment, json); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION public.comment_get_score(comment_row public.comment, hasura_session json) RETURNS double precision
+CREATE FUNCTION public.comment_get_scores(comment_row public.comment, hasura_session json) RETURNS SETOF public.mutual_score
     LANGUAGE sql IMMUTABLE
     AS $$
-WITH beacon_row AS (SELECT context FROM beacon WHERE beacon.id = comment_row.beacon_id)
-  SELECT score FROM mr_node_score(hasura_session ->> 'x-hasura-user-id', comment_row.id, (SELECT context FROM beacon_row));
+SELECT
+  src,
+  dst,
+  score_of_src AS src_score,
+  score_of_dst AS dst_score
+FROM mr_node_score(
+    hasura_session ->> 'x-hasura-user-id',
+    comment_row.id,
+    COALESCE(
+        hasura_session ->> 'x-hasura-query-context',
+        (SELECT context FROM (SELECT context FROM beacon WHERE beacon.id = comment_row.beacon_id))
+    )
+);
 $$;
 
 
-ALTER FUNCTION public.comment_get_score(comment_row public.comment, hasura_session json) OWNER TO postgres;
+ALTER FUNCTION public.comment_get_scores(comment_row public.comment, hasura_session json) OWNER TO postgres;
 
 --
 -- Name: decrement_beacon_comments_count(); Type: FUNCTION; Schema: public; Owner: postgres
@@ -178,32 +209,26 @@ $$;
 ALTER FUNCTION public.decrement_beacon_comments_count() OWNER TO postgres;
 
 --
--- Name: edge; Type: VIEW; Schema: public; Owner: postgres
---
-
-CREATE VIEW public.edge AS
- SELECT ''::text AS src,
-    ''::text AS dst,
-    (0)::double precision AS score
-  WHERE false;
-
-
-ALTER VIEW public.edge OWNER TO postgres;
-
---
 -- Name: graph(text, text, boolean, json); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION public.graph(focus text, context text, positive_only boolean, hasura_session json) RETURNS SETOF public.edge
+CREATE FUNCTION public.graph(focus text, context text, positive_only boolean, hasura_session json) RETURNS SETOF public.mutual_score
     LANGUAGE sql IMMUTABLE
     AS $$
-SELECT src, dst, score FROM mr_graph(
-    hasura_session->>'x-hasura-user-id',
+SELECT
+  src,
+  dst,
+  score_of_src AS src_score,
+  score_of_dst AS dst_score
+FROM
+  mr_graph(
+    hasura_session ->> 'x-hasura-user-id',
     focus,
     context,
     positive_only,
     0,
-    100);
+    100
+  );
 $$;
 
 
@@ -339,11 +364,17 @@ ALTER FUNCTION public.meritrank_init() OWNER TO postgres;
 -- Name: my_field(text, json); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION public.my_field(context text, hasura_session json) RETURNS SETOF public.edge
+CREATE FUNCTION public.my_field(context text, hasura_session json) RETURNS SETOF public.mutual_score
     LANGUAGE sql IMMUTABLE
     AS $$
-SELECT src, dst, score FROM mr_scores(
-    hasura_session->>'x-hasura-user-id',
+SELECT
+  src,
+  dst,
+  score_of_src AS src_score,
+  score_of_dst AS dst_score
+FROM
+  mr_scores(
+    hasura_session ->> 'x-hasura-user-id',
     true,
     context,
     'B',
@@ -353,7 +384,7 @@ SELECT src, dst, score FROM mr_scores(
     null,
     0,
     100
-);
+  );
 $$;
 
 
@@ -513,27 +544,18 @@ $$;
 ALTER FUNCTION public.notify_meritrank_vote_user_mutation() OWNER TO postgres;
 
 --
--- Name: mutual_score; Type: VIEW; Schema: public; Owner: postgres
---
-
-CREATE VIEW public.mutual_score AS
- SELECT ''::text AS src,
-    ''::text AS dst,
-    (0)::double precision AS src_score,
-    (0)::double precision AS dst_score
-  WHERE false;
-
-
-ALTER VIEW public.mutual_score OWNER TO postgres;
-
---
 -- Name: rating(text, json); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
 CREATE FUNCTION public.rating(context text, hasura_session json) RETURNS SETOF public.mutual_score
     LANGUAGE sql IMMUTABLE
     AS $$
-SELECT src, dst, src_score, dst_score FROM mr_mutual_scores(hasura_session->>'x-hasura-user-id', context);
+SELECT
+    src,
+    dst,
+    score_of_src AS src_score,
+    score_of_dst AS dst_score
+FROM mr_mutual_scores(hasura_session->>'x-hasura-user-id', context);
 $$;
 
 
@@ -546,25 +568,30 @@ ALTER FUNCTION public.rating(context text, hasura_session json) OWNER TO postgre
 CREATE FUNCTION public.set_current_timestamp_updated_at() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
-
 DECLARE
-
   _new record;
-
 BEGIN
-
   _new := NEW;
-
   _new."updated_at" = NOW();
-
   RETURN _new;
-
 END;
-
 $$;
 
 
 ALTER FUNCTION public.set_current_timestamp_updated_at() OWNER TO postgres;
+
+--
+-- Name: edge; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.edge AS
+ SELECT ''::text AS src,
+    ''::text AS dst,
+    (0)::double precision AS score
+  WHERE false;
+
+
+ALTER VIEW public.edge OWNER TO postgres;
 
 --
 -- Name: updates(text, json); Type: FUNCTION; Schema: public; Owner: postgres
@@ -574,14 +601,23 @@ CREATE FUNCTION public.updates(prefix text, hasura_session json) RETURNS SETOF p
     LANGUAGE sql
     AS $$
 WITH new_edges AS (
-  SELECT * FROM mr_fetch_new_edges(hasura_session->>'x-hasura-user-id', prefix)
-), new_filter AS (
-  INSERT INTO user_updates VALUES(
-    hasura_session->>'x-hasura-user-id',
-    mr_get_new_edges_filter(hasura_session->>'x-hasura-user-id')
-  ) ON CONFLICT DO NOTHING
+  SELECT
+    *
+  FROM
+    mr_fetch_new_edges(hasura_session ->> 'x-hasura-user-id', prefix)
+),
+new_filter AS (
+  INSERT INTO
+    user_updates
+  VALUES(
+      hasura_session ->> 'x-hasura-user-id',
+      mr_get_new_edges_filter(hasura_session ->> 'x-hasura-user-id')
+    ) ON CONFLICT DO NOTHING
 )
-  SELECT * FROM new_edges;
+SELECT
+  *
+FROM
+  new_edges;
 $$;
 
 
@@ -613,26 +649,33 @@ ALTER TABLE public."user" OWNER TO postgres;
 CREATE FUNCTION public.user_get_my_vote(user_row public."user", hasura_session json) RETURNS integer
     LANGUAGE sql STABLE
     AS $$
-
-  SELECT amount FROM vote_user WHERE subject = (hasura_session ->> 'x-hasura-user-id')::TEXT AND object = user_row.id;
-
+SELECT COALESCE((SELECT amount FROM vote_user WHERE subject = (hasura_session ->> 'x-hasura-user-id')::TEXT AND object = user_row.id), 0);
 $$;
 
 
 ALTER FUNCTION public.user_get_my_vote(user_row public."user", hasura_session json) OWNER TO postgres;
 
 --
--- Name: user_get_score(public."user", json); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: user_get_scores(public."user", json); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION public.user_get_score(user_row public."user", hasura_session json) RETURNS double precision
+CREATE FUNCTION public.user_get_scores(user_row public."user", hasura_session json) RETURNS SETOF public.mutual_score
     LANGUAGE sql IMMUTABLE
     AS $$
-SELECT score FROM mr_node_score(hasura_session ->> 'x-hasura-user-id', user_row.id, null);
+SELECT
+  src,
+  dst,
+  score_of_src AS src_score,
+  score_of_dst AS dst_score
+FROM mr_node_score(
+    hasura_session ->> 'x-hasura-user-id',
+    user_row.id,
+    hasura_session ->> 'x-hasura-query-context'
+)
 $$;
 
 
-ALTER FUNCTION public.user_get_score(user_row public."user", hasura_session json) OWNER TO postgres;
+ALTER FUNCTION public.user_get_scores(user_row public."user", hasura_session json) OWNER TO postgres;
 
 --
 -- Name: beacon_pinned; Type: TABLE; Schema: public; Owner: postgres
@@ -645,6 +688,24 @@ CREATE TABLE public.beacon_pinned (
 
 
 ALTER TABLE public.beacon_pinned OWNER TO postgres;
+
+--
+-- Name: message; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.message (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    subject text NOT NULL,
+    object text NOT NULL,
+    message text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    delivered boolean DEFAULT false NOT NULL,
+    CONSTRAINT message_message_length CHECK ((char_length(message) > 0))
+);
+
+
+ALTER TABLE public.message OWNER TO postgres;
 
 --
 -- Name: user_context; Type: TABLE; Schema: public; Owner: postgres
@@ -722,7 +783,6 @@ ALTER TABLE public.vote_user OWNER TO postgres;
 
 INSERT INTO public."user" VALUES ('U000000000000', '2023-12-20 23:37:34.043065+00', '2024-07-23 22:35:05.950428+00', 'Tentura', 'Kind a black hole', true, 'nologin');
 
-
 --
 -- Name: beacon_pinned beacon_pinned_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
@@ -745,6 +805,14 @@ ALTER TABLE ONLY public.beacon
 
 ALTER TABLE ONLY public.comment
     ADD CONSTRAINT comment_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: message message_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.message
+    ADD CONSTRAINT message_pkey PRIMARY KEY (id);
 
 
 --
@@ -808,6 +876,20 @@ ALTER TABLE ONLY public.vote_user
 --
 
 CREATE INDEX beacon_author_id ON public.beacon USING btree (user_id);
+
+
+--
+-- Name: message_by_object; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX message_by_object ON public.message USING btree (object);
+
+
+--
+-- Name: message_by_subject; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX message_by_subject ON public.message USING btree (subject);
 
 
 --
@@ -885,6 +967,20 @@ CREATE TRIGGER set_public_beacon_updated_at BEFORE UPDATE ON public.beacon FOR E
 --
 
 COMMENT ON TRIGGER set_public_beacon_updated_at ON public.beacon IS 'trigger to set value of column "updated_at" to current timestamp on row update';
+
+
+--
+-- Name: message set_public_message_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER set_public_message_updated_at BEFORE UPDATE ON public.message FOR EACH ROW EXECUTE FUNCTION public.set_current_timestamp_updated_at();
+
+
+--
+-- Name: TRIGGER set_public_message_updated_at ON message; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TRIGGER set_public_message_updated_at ON public.message IS 'trigger to set value of column "updated_at" to current timestamp on row update';
 
 
 --
@@ -981,6 +1077,22 @@ ALTER TABLE ONLY public.comment
 
 ALTER TABLE ONLY public.comment
     ADD CONSTRAINT comment_user_id_fkey FOREIGN KEY (user_id) REFERENCES public."user"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: message message_object_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.message
+    ADD CONSTRAINT message_object_fkey FOREIGN KEY (object) REFERENCES public."user"(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
+
+--
+-- Name: message message_subject_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.message
+    ADD CONSTRAINT message_subject_fkey FOREIGN KEY (subject) REFERENCES public."user"(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
 
 --

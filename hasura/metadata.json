@@ -1,5 +1,5 @@
 {
-  "resource_version": 272,
+  "resource_version": 393,
   "metadata": {
     "version": 3,
     "sources": [
@@ -82,16 +82,14 @@
                 }
               },
               {
-                "name": "score",
+                "name": "scores",
                 "definition": {
                   "function": {
-                    "name": "beacon_get_score",
+                    "name": "beacon_get_scores",
                     "schema": "public"
                   },
-                  "session_argument": "hasura_session",
-                  "table_argument": "beacon_row"
-                },
-                "comment": ""
+                  "session_argument": "hasura_session"
+                }
               }
             ],
             "insert_permissions": [
@@ -136,8 +134,7 @@
                   ],
                   "computed_fields": [
                     "is_pinned",
-                    "my_vote",
-                    "score"
+                    "my_vote"
                   ],
                   "filter": {}
                 },
@@ -285,14 +282,13 @@
                 }
               },
               {
-                "name": "score",
+                "name": "scores",
                 "definition": {
                   "function": {
-                    "name": "comment_get_score",
+                    "name": "comment_get_scores",
                     "schema": "public"
                   },
-                  "session_argument": "hasura_session",
-                  "table_argument": "comment_row"
+                  "session_argument": "hasura_session"
                 }
               }
             ],
@@ -323,8 +319,7 @@
                     "id"
                   ],
                   "computed_fields": [
-                    "my_vote",
-                    "score"
+                    "my_vote"
                   ],
                   "filter": {}
                 }
@@ -412,10 +407,135 @@
           },
           {
             "table": {
+              "name": "message",
+              "schema": "public"
+            },
+            "insert_permissions": [
+              {
+                "role": "user",
+                "permission": {
+                  "check": {},
+                  "set": {
+                    "subject": "x-hasura-User-Id"
+                  },
+                  "columns": [
+                    "message",
+                    "object"
+                  ]
+                },
+                "comment": ""
+              }
+            ],
+            "select_permissions": [
+              {
+                "role": "user",
+                "permission": {
+                  "columns": [
+                    "created_at",
+                    "delivered",
+                    "id",
+                    "message",
+                    "object",
+                    "subject",
+                    "updated_at"
+                  ],
+                  "filter": {
+                    "_or": [
+                      {
+                        "subject": {
+                          "_eq": "X-Hasura-User-Id"
+                        }
+                      },
+                      {
+                        "object": {
+                          "_eq": "X-Hasura-User-Id"
+                        }
+                      }
+                    ]
+                  }
+                },
+                "comment": ""
+              }
+            ],
+            "update_permissions": [
+              {
+                "role": "user",
+                "permission": {
+                  "columns": [
+                    "delivered"
+                  ],
+                  "filter": {
+                    "object": {
+                      "_eq": "X-Hasura-User-Id"
+                    }
+                  },
+                  "check": null,
+                  "set": {
+                    "delivered": "true"
+                  }
+                },
+                "comment": ""
+              }
+            ],
+            "delete_permissions": [
+              {
+                "role": "user",
+                "permission": {
+                  "filter": {
+                    "_and": [
+                      {
+                        "subject": {
+                          "_eq": "X-Hasura-User-Id"
+                        }
+                      },
+                      {
+                        "delivered": {
+                          "_eq": false
+                        }
+                      }
+                    ]
+                  }
+                },
+                "comment": ""
+              }
+            ]
+          },
+          {
+            "table": {
               "name": "mutual_score",
               "schema": "public"
             },
             "object_relationships": [
+              {
+                "name": "beacon",
+                "using": {
+                  "manual_configuration": {
+                    "column_mapping": {
+                      "dst": "id"
+                    },
+                    "insertion_order": null,
+                    "remote_table": {
+                      "name": "beacon",
+                      "schema": "public"
+                    }
+                  }
+                }
+              },
+              {
+                "name": "comment",
+                "using": {
+                  "manual_configuration": {
+                    "column_mapping": {
+                      "dst": "id"
+                    },
+                    "insertion_order": null,
+                    "remote_table": {
+                      "name": "comment",
+                      "schema": "public"
+                    }
+                  }
+                }
+              },
               {
                 "name": "user",
                 "using": {
@@ -552,16 +672,14 @@
                 }
               },
               {
-                "name": "score",
+                "name": "scores",
                 "definition": {
                   "function": {
-                    "name": "user_get_score",
+                    "name": "user_get_scores",
                     "schema": "public"
                   },
-                  "session_argument": "hasura_session",
-                  "table_argument": "user_row"
-                },
-                "comment": ""
+                  "session_argument": "hasura_session"
+                }
               }
             ],
             "select_permissions": [
@@ -578,8 +696,7 @@
                     "updated_at"
                   ],
                   "computed_fields": [
-                    "my_vote",
-                    "score"
+                    "my_vote"
                   ],
                   "filter": {},
                   "limit": 10
@@ -722,7 +839,11 @@
                     "created_at",
                     "updated_at"
                   ],
-                  "filter": {}
+                  "filter": {
+                    "subject": {
+                      "_eq": "X-Hasura-User-Id"
+                    }
+                  }
                 }
               }
             ],
@@ -788,7 +909,11 @@
                     "created_at",
                     "updated_at"
                   ],
-                  "filter": {}
+                  "filter": {
+                    "subject": {
+                      "_eq": "X-Hasura-User-Id"
+                    }
+                  }
                 }
               }
             ],
@@ -858,7 +983,11 @@
                     "created_at",
                     "updated_at"
                   ],
-                  "filter": {}
+                  "filter": {
+                    "subject": {
+                      "_eq": "X-Hasura-User-Id"
+                    }
+                  }
                 },
                 "comment": ""
               }
@@ -876,6 +1005,19 @@
                     }
                   },
                   "check": null
+                },
+                "comment": ""
+              }
+            ],
+            "delete_permissions": [
+              {
+                "role": "user",
+                "permission": {
+                  "filter": {
+                    "subject": {
+                      "_eq": "X-Hasura-User-Id"
+                    }
+                  }
                 },
                 "comment": ""
               }
@@ -932,10 +1074,6 @@
             "function": {
               "name": "updates",
               "schema": "public"
-            },
-            "configuration": {
-              "custom_root_fields": {},
-              "session_argument": "hasura_session"
             },
             "permissions": [
               {
